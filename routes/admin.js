@@ -48,7 +48,11 @@ router.get('/', (req, res) => {
       <input name="value" value="${esc(c.value)}" size="60"><button>Save</button>
     </form></td></tr>`).join('');
 
-  const body = `<div class="page-head"><h1>Admin</h1></div>
+  let queuePending = 0;
+  try { queuePending = require('../jobs/queue').pending(); } catch { /* table may be new */ }
+
+  const body = `<div class="page-head"><h1>Admin</h1>
+    <span class="pill">Background queue: ${queuePending} pending</span></div>
     <section><h2>Keyword groups</h2>
       <table><thead><tr><th>Group</th><th>Keywords (comma-separated)</th></tr></thead><tbody>${groupRows}</tbody></table>
       <form class="inline" onsubmit="return DMU.addGroup(event)">

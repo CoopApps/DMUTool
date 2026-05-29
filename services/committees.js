@@ -82,8 +82,9 @@ async function run_() {
           [extId, committee, title, opened, deadline, wdr, summary, url, isNew, 'AcceptingEvidence', primary]);
         inquiryId = info.lastInsertRowid;
         created += 1;
-        // Run academic matching immediately on every new inquiry.
+        // Run academic matching immediately, then queue background relevance scoring.
         try { matcher.matchItem(inquiryId, 'committee_inquiry'); } catch { /* non-fatal */ }
+        try { require('./relevance').enqueue('committee_inquiry', inquiryId, 1); } catch { /* non-fatal */ }
       }
     }
   } catch (e) {

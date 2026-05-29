@@ -285,7 +285,39 @@ CREATE TABLE IF NOT EXISTS mp_cache (
   UNIQUE(mp_id, cache_type)
 );
 
+-- ========================= Background task queue =========================
+-- Drives intelligent, background processing (contextual relevance scoring).
+CREATE TABLE IF NOT EXISTS task_queue (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind         TEXT NOT NULL,            -- e.g. 'relevance'
+  item_type    TEXT NOT NULL,
+  item_id      INTEGER NOT NULL,
+  priority     INTEGER DEFAULT 5,        -- lower = sooner
+  status       TEXT DEFAULT 'pending',   -- pending | done | error
+  attempts     INTEGER DEFAULT 0,
+  error        TEXT,
+  created_at   TEXT DEFAULT (datetime('now')),
+  processed_at TEXT,
+  UNIQUE(kind, item_type, item_id)
+);
+
+-- ========================= Think tanks =========================
+CREATE TABLE IF NOT EXISTS think_tanks (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  name                TEXT UNIQUE,
+  url                 TEXT,
+  feed_url            TEXT,
+  scrape_selectors    TEXT,
+  status              TEXT DEFAULT 'unvalidated', -- unvalidated | active | dead | needs_url
+  keyword_groups_json TEXT,
+  last_checked        TEXT,
+  last_hit            TEXT,
+  hit_count           INTEGER DEFAULT 0,
+  miss_streak         INTEGER DEFAULT 0
+);
+
 -- ========================= Indexes =========================
+CREATE INDEX IF NOT EXISTS idx_queue_status ON task_queue(status, priority);
 
 CREATE INDEX IF NOT EXISTS idx_parl_group ON parliamentary_items(keyword_group);
 CREATE INDEX IF NOT EXISTS idx_parl_date  ON parliamentary_items(date);

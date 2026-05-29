@@ -99,6 +99,7 @@ async function run_() {
             if (isNew) {
               created += 1;
               try { matcher.matchItem(id, 'consultation'); } catch { /* non-fatal */ }
+              try { require('./relevance').enqueue('consultation', id, 2); } catch { /* non-fatal */ }
             }
           }
         } catch (e) { error = (error ? error + '; ' : '') + `${keyword}/cons: ${e.message}`; }

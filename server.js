@@ -45,9 +45,10 @@ app.listen(PORT, async () => {
       .catch((e) => console.error('Initial Contensis crawl failed:', e.message));
   }
 
-  // Start scheduled jobs unless disabled (e.g. during tests / migration).
+  // Start scheduled jobs + the background task-queue worker unless disabled.
   if (process.env.DISABLE_CRON !== '1') {
     require('./jobs/scheduler').start();
+    require('./jobs/queue').start();
   }
 });
 

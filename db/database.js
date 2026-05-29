@@ -32,6 +32,14 @@ function init() {
   ensureColumn('academics', 'source', "TEXT DEFAULT 'contensis'");
   ensureColumn('academics', 'norm_name', 'TEXT');
 
+  // Contextual-relevance columns on the item tables that pass through the gate.
+  for (const t of ['parliamentary_items', 'committee_inquiries', 'consultations', 'external_items']) {
+    ensureColumn(t, 'relevance_level', 'TEXT');        // high | medium | low | none
+    ensureColumn(t, 'relevance_score', 'REAL');        // 0..1
+    ensureColumn(t, 'relevance_rationale', 'TEXT');
+    ensureColumn(t, 'relevance_checked', 'INTEGER DEFAULT 0');
+  }
+
   // Triggers to keep the FTS index in sync with the academics table.
   db.exec(`
     CREATE TRIGGER IF NOT EXISTS academics_ai AFTER INSERT ON academics BEGIN
