@@ -24,8 +24,9 @@ function writeCache(mpId, type, data) {
     [mpId, type, JSON.stringify(data)]);
 }
 
-/** Resolve a member id from the Members API by name (best-effort). */
+/** Resolve a member id — prefer the stored Members API id (Lords + enriched MPs). */
 async function resolveMemberId(mp) {
+  if (mp.member_api_id) return mp.member_api_id;
   const name = `${mp.first_name} ${mp.last_name}`.trim();
   try {
     const data = await getJson(`https://members-api.parliament.uk/api/Members/Search?Name=${encodeURIComponent(name)}&take=1`);
@@ -41,7 +42,10 @@ async function getVotingRecord(mp) {
   if (!memberId) return [];
   let votes = [];
   try {
-    const url = `https://commonsvotes-api.parliament.uk/data/divisions/membervoting?queryParameters.memberId=${memberId}&queryParameters.take=20`;
+    const base = mp.house === 'Lords'
+      ? 'https://lordsvotes-api.parliament.uk/data/Divisions/membervoting'
+      : 'https://commonsvotes-api.parliament.uk/data/divisions/membervoting';
+    const url = `${base}?queryParameters.memberId=${memberId}&queryParameters.take=20`;
     const data = await getJson(url);
     votes = (data || []).map((d) => ({
       title: d.PublishedDivision ? d.PublishedDivision.Title : d.Title,

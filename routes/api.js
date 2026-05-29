@@ -174,6 +174,7 @@ const SOURCE_RUNNERS = {
   govuk: () => require('../services/govuk').run(),
   email: () => require('../services/email').sendDigest(),
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
+  lordsRefresh: () => require('../services/lords').refreshLords(),
   staffXml: () => require('../services/staffXml').run(),
   dmuEvents: () => require('../services/contensis').crawl({ mode: 'events-only' }),
   thinktanks: () => require('../services/thinktanks').run(),

@@ -8,27 +8,31 @@ const mpProfile = require('../services/mpProfile');
 const twfy = require('../services/theyworkforyou');
 
 router.get('/', (req, res) => {
-  const { party = '', active = '', q = '' } = req.query;
+  const { party = '', active = '', q = '', house = '' } = req.query;
   const where = [];
   const params = [];
   if (party) { where.push('party = ?'); params.push(party); }
+  if (house) { where.push('house = ?'); params.push(house); }
   if (active === '1' || active === '0') { where.push('is_active = ?'); params.push(parseInt(active, 10)); }
   if (q) { where.push('(first_name LIKE ? OR last_name LIKE ? OR constituency LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
   const sql = `SELECT * FROM mps ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-    ORDER BY last_name, first_name LIMIT 500`;
+    ORDER BY last_name, first_name LIMIT 800`;
   const mps = all(sql, params);
   const parties = all('SELECT DISTINCT party FROM mps WHERE party IS NOT NULL ORDER BY party');
 
   const rows = mps.map((m) => `<tr>
     <td><a href="/mps/${m.id}">${esc(m.first_name)} ${esc(m.last_name)}</a></td>
     <td>${esc(m.party || '')}</td>
-    <td>${esc(m.constituency || '')}</td>
+    <td>${esc(m.house === 'Lords' ? 'House of Lords' : (m.constituency || ''))}</td>
     <td>${m.is_active ? 'Active' : 'Inactive'}</td>
   </tr>`).join('');
 
-  const body = `<div class="page-head"><h1>MP tracker</h1></div>
+  const body = `<div class="page-head"><h1>Members tracker</h1></div>
     <form class="filters" method="get">
       <input name="q" placeholder="Search name / constituency" value="${esc(q)}">
+      <select name="house"><option value="">Both Houses</option>
+        <option value="Commons" ${house==='Commons'?'selected':''}>Commons</option>
+        <option value="Lords" ${house==='Lords'?'selected':''}>Lords</option></select>
       <select name="party"><option value="">All parties</option>
         ${parties.map((p) => `<option ${p.party === party ? 'selected' : ''}>${esc(p.party)}</option>`).join('')}</select>
       <select name="active"><option value="">All</option>
@@ -36,8 +40,8 @@ router.get('/', (req, res) => {
         <option value="0" ${active==='0'?'selected':''}>Inactive</option></select>
       <button>Filter</button>
     </form>
-    <p class="count">${mps.length} MPs</p>
-    <table class="mp-table"><thead><tr><th>Name</th><th>Party</th><th>Constituency</th><th>Status</th></tr></thead>
+    <p class="count">${mps.length} members</p>
+    <table class="mp-table"><thead><tr><th>Name</th><th>Party</th><th>Seat / House</th><th>Status</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 
   res.send(layout({ title: 'MPs', body, active: '/mps' }));

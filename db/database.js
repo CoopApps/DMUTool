@@ -32,6 +32,10 @@ function init() {
   ensureColumn('academics', 'source', "TEXT DEFAULT 'contensis'");
   ensureColumn('academics', 'norm_name', 'TEXT');
 
+  // People coverage: Commons (from Access) + Lords (from Members API).
+  ensureColumn('mps', 'house', "TEXT DEFAULT 'Commons'");
+  ensureColumn('mps', 'member_api_id', 'INTEGER');
+
   // Contextual-relevance columns on the item tables that pass through the gate.
   for (const t of ['parliamentary_items', 'committee_inquiries', 'consultations', 'external_items']) {
     ensureColumn(t, 'relevance_level', 'TEXT');        // high | medium | low | none

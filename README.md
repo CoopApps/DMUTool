@@ -22,7 +22,7 @@ Serves on `http://localhost:3000`.
 | Committee tracker | `/committees` | Open inquiries sorted by deadline, RAG-coded working days, matched academics, submission tracker. |
 | Consultations | `/consultations` | Open government consultations (GOV.UK Search API), RAG-coded deadlines, matched academics, response tracker, draft button. |
 | Sector watch | `/sector` | HE news, professional bodies, outlets, legislation, bills, EDMs, petitions. |
-| MP tracker | `/mps` | Browse/search 622 MPs, engagement log, recent contributions, voting record, declared interests. |
+| Members tracker | `/mps` | Browse/search Commons MPs (from Access) **and current Lords** (Members API), filter by House; engagement log, recent contributions, voting record (Commons/Lords votes), declared interests. |
 | Engagement | `/engagement` | Follow-ups due, a relevance-ranked target list of MPs active on our topics we've never contacted (CSV export), and stale relationships to re-engage. |
 | APPGs | `/appgs` | All-Party Parliamentary Groups whose subject matches DMU topics, with officer MPs linked as an engagement route (scraped register — no API). |
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
@@ -152,6 +152,9 @@ per-source "Run now" button).
   sources that never produce relevant hits. Every report passes the keyword
   prefilter at ingest and the contextual relevance gate in the background, so
   only reports genuinely relevant to DMU surface (Sector watch → Think tanks).
+* **Lords**: current peers pulled from the Members API into the members tracker
+  (house='Lords'), with Lords-votes and interests on their profile — so peers
+  appear in engagement target lists and contribution matching too.
 * **MP intelligence**: Parliament Members API (portrait + active-status
   reconciliation, also available as the `mpRefresh` manual source in Admin) and
   TheyWorkForYou (voting summaries / positions) on the MP profile.

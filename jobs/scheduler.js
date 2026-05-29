@@ -69,6 +69,9 @@ function start() {
   // Weekly Monday — refresh upcoming DMU events (Contensis, events only)
   cron.schedule('30 4 * * 1', safe('dmu-events', () => contensis.crawl({ mode: 'events-only' })), opt);
 
+  // Monthly — refresh current Lords from the Members API (2nd of the month)
+  cron.schedule('0 4 2 * *', safe('lords', () => require('../services/lords').refreshLords()), opt);
+
   // Monthly — full Contensis crawl (staff, courses, research, SDG) on the 1st
   cron.schedule('0 3 1 * *', safe('contensis-full', async () => {
     await contensis.crawl({ mode: 'full' });
