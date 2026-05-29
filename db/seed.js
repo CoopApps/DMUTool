@@ -19,6 +19,8 @@ const KEYWORD_GROUPS = [
   ['Sustainable development', 'SDG, sustainable cities, net zero, urban regeneration, climate, sustainability'],
   ['Health and nursing', 'nursing, midwifery, allied health, NHS workforce, healthcare education, prescribing'],
   ['Optometry', 'optometry, optometrist, optical, eye health, dispensing optician, vision'],
+  ['Sector funding & regulation', 'Office for Students, OfS, condition of registration, conditions of registration, higher education funding, teaching grant, tuition fees, student finance, financial sustainability, franchised provision, subcontracted provision, degree awarding powers, university title, Lifelong Learning Entitlement, LLE, USS, university pensions, staff pay, free speech, higher education act, quality and standards, course closures'],
+  ['Skills, technical & civic', 'degree apprenticeships, apprenticeships, T-levels, technical education, further education, skills, skills policy, levelling up, regional growth, civic university, place-based, devolution, knowledge exchange, KEF, innovation, University Alliance, mission group, professional and technical universities, applied research'],
 ];
 
 // name, url, feed_url(null=scrape), scrape_selectors, departments, keyword_groups
@@ -65,6 +67,8 @@ const DMU_CONTEXT = [
   ['campuses', 'International campuses: Dubai, Cambodia, Kazakhstan, London.'],
   ['rankings', 'TEF Silver rated; ranked in QS World University Rankings for Art and Design, Computer Science, and Economics.'],
   ['institutional_voice', 'Professional, direct, evidence-grounded, not promotional.'],
+  ['mission_group', 'DMU is a member of University Alliance — the mission group for professional and technical universities. Its institutional interests align with UA advocacy on applied research, technical and professional education, skills, degree apprenticeships, and the civic/regional growth agenda.'],
+  ['institutional_interests', 'DMU\'s interests are not only where it has academic expertise but where it is affected as an institution: higher education funding and tuition fees; OfS regulation and conditions of registration; international student recruitment and visa/immigration policy (a major revenue and operational concern); research funding (UKRI, Horizon); degree apprenticeships and skills policy; the Lifelong Learning Entitlement; staff pay and pensions (USS); free speech duties; quality and standards; and DMU\'s civic role in Leicester and the East Midlands.'],
   ['new_events_count', '0'],
 ];
 
@@ -97,8 +101,8 @@ function seed() {
   }
 
   for (const [key, value] of DMU_CONTEXT) {
-    // Don't clobber the live event counter on re-seed.
-    if (key === 'new_events_count' && get('SELECT id FROM dmu_context WHERE key = ?', [key])) continue;
+    // Insert defaults only if absent — never clobber admin edits on restart.
+    if (get('SELECT id FROM dmu_context WHERE key = ?', [key])) continue;
     setContext(key, value);
   }
 

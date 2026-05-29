@@ -36,6 +36,15 @@ function dmuExpertise() {
   return loadGroups().map((g) => g.name).join(', ');
 }
 
+/** DMU's institutional-interest profile (editable in Admin → DMU context). */
+function interestsProfile() {
+  const keys = ['mission_group', 'institutional_interests', 'key_research', 'sdg11_hub'];
+  return keys.map((k) => {
+    const r = get('SELECT value FROM dmu_context WHERE key = ?', [k]);
+    return r ? `- ${r.value}` : null;
+  }).filter(Boolean).join('\n');
+}
+
 /** Score one item. Returns { level, score, rationale } or null on skip. */
 async function scoreItem(itemType, itemId) {
   const map = TABLES[itemType];
@@ -53,16 +62,21 @@ async function scoreItem(itemType, itemId) {
 
   const system =
     'You triage parliamentary and policy content for the De Montfort University (DMU) public affairs team. ' +
-    `DMU's areas of expertise: ${dmuExpertise()}. ` +
-    'Judge whether the item is GENUINELY relevant to DMU\'s expertise and worth the officer\'s attention — ' +
-    'distinguish a substantive, actionable match from an incidental keyword mention in an unrelated context. ' +
-    'Be strict: a passing reference is "low" or "none". Return JSON only.';
+    'Relevance is about DMU\'s INTERESTS as a university and as a member of University Alliance — NOT only where it has academic expertise. ' +
+    'Judge relevance through three lenses, any one of which can make an item relevant:\n' +
+    '(1) Expertise — a DMU academic could comment or submit evidence;\n' +
+    '(2) Institutional impact — it affects DMU as an institution: funding, tuition fees, OfS regulation, international student recruitment and visas, research funding, staff pay/pensions, operations, reputation;\n' +
+    '(3) Sector / University Alliance alignment — technical and professional HE, skills, degree apprenticeships, applied research, civic and regional growth.\n' +
+    'An item can be HIGH relevance with NO academic match if it materially affects DMU institutionally or aligns with the UA agenda. ' +
+    'Be strict only about genuinely incidental keyword mentions in unrelated contexts. ' +
+    `DMU areas of expertise: ${dmuExpertise()}.\nDMU institutional interest profile:\n${interestsProfile()}\n` +
+    'Return JSON only.';
 
   const user =
     `Item title: ${item.title}\n` +
     `Item text: ${(item.text || '').slice(0, 2500)}\n` +
-    `Keyword-matched DMU academics: ${academicsBlock}\n\n` +
-    'Return {"level":"high|medium|low|none","rationale":"one sentence on why, naming the DMU angle or why it is incidental"}';
+    `Keyword-matched DMU academics (may be empty — absence does NOT lower institutional relevance): ${academicsBlock}\n\n` +
+    'Return {"level":"high|medium|low|none","angle":"expertise|institutional|sector","rationale":"one sentence naming the DMU interest at stake, or why it is incidental"}';
 
   let parsed;
   try {
@@ -76,9 +90,11 @@ async function scoreItem(itemType, itemId) {
   const level = ['high', 'medium', 'low', 'none'].includes((parsed.level || '').toLowerCase())
     ? parsed.level.toLowerCase() : 'low';
   const score = LEVEL_SCORE[level];
+  const angleLabel = { expertise: 'Expertise', institutional: 'Institutional', sector: 'Sector/UA' }[(parsed.angle || '').toLowerCase()];
+  const rationale = (angleLabel ? `[${angleLabel}] ` : '') + (parsed.rationale || '');
   run(`UPDATE ${map.table} SET relevance_level=?, relevance_score=?, relevance_rationale=?, relevance_checked=1 WHERE id=?`,
-    [level, score, parsed.rationale || null, itemId]);
-  return { level, score, rationale: parsed.rationale };
+    [level, score, rationale || null, itemId]);
+  return { level, score, rationale };
 }
 
 /** A degraded, no-API fallback: mark as checked at neutral relevance. */
