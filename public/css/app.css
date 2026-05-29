@@ -85,6 +85,15 @@ tr.overdue td { background: #fff3f3; }
 .csvbtn { padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px; text-decoration: none;
   color: var(--dmu); background: #fff; font-size: 13px; }
 section { margin-bottom: 26px; }
+button.primary { background: var(--dmu-accent); }
+.stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 24px; }
+.stat { flex: 1; min-width: 150px; background: #fff; border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px; text-decoration: none; color: var(--text); text-align: center; }
+.stat:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.stat .num { display: block; font-size: 28px; font-weight: 700; color: var(--dmu); }
+.briefing { background: #fff; border: 1px solid var(--line); border-radius: 8px; margin: 0 0 24px; }
+.briefing textarea { width: 100%; border: 0; padding: 12px; font: inherit; resize: vertical; }
+.briefing .draft-actions { padding: 0 12px 12px; }
 
 /* Diary */
 .weeknav { display: flex; gap: 14px; align-items: center; }

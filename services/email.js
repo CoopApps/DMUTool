@@ -101,4 +101,15 @@ async function sendDigest() {
   }
 }
 
-module.exports = { sendDigest, isConfigured };
+/** Send an HTML email via the configured SMTP transport. */
+async function sendMail({ subject, html, to }) {
+  if (!isConfigured()) throw new Error('SMTP/DIGEST_TO not configured');
+  return transport().sendMail({
+    from: process.env.DIGEST_FROM || process.env.SMTP_USER || 'dmu-intel@localhost',
+    to: to || process.env.DIGEST_TO,
+    subject,
+    html,
+  });
+}
+
+module.exports = { sendDigest, sendMail, isConfigured };

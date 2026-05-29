@@ -16,6 +16,7 @@ Serves on `http://localhost:3000`.
 
 | View | Path | What it does |
 |------|------|--------------|
+| This week | `/action` | Consolidated urgency dashboard — closing committee/consultation deadlines and oral-question cut-offs (RAG-coded), what's new, follow-ups due, plus an on-demand Claude weekly briefing for the SLT. |
 | Daily digest | `/digest` | Parliamentary items grouped by topic, with matched academics, matched courses, and Draft / Find-experts actions. New-inquiry banners. |
 | Parliamentary diary | `/diary` | Week-at-a-glance calendar from the What's On API, recess-aware, oral-question deadline countdowns. |
 | Committee tracker | `/committees` | Open inquiries sorted by deadline, RAG-coded working days, matched academics, submission tracker. |

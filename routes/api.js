@@ -20,6 +20,13 @@ router.post('/draft', asyncH(async (req, res) => {
   res.json(result);
 }));
 
+// ---- Weekly briefing (on demand) -------------------------------------------
+router.post('/briefing', asyncH(async (req, res) => {
+  if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set — briefing disabled.' });
+  const result = await require('../services/briefing').generate();
+  res.json(result);
+}));
+
 // ---- Tier 2 semantic matching ----------------------------------------------
 router.post('/match/semantic', asyncH(async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set — semantic matching disabled.' });
@@ -137,6 +144,7 @@ const SOURCE_RUNNERS = {
   staffXml: () => require('../services/staffXml').run(),
   dmuEvents: () => require('../services/contensis').crawl({ mode: 'events-only' }),
   thinktanks: () => require('../services/thinktanks').run(),
+  briefing: () => require('../services/briefing').sendWeekly(),
   bills: () => require('../services/secondary').bills(),
   petitions: () => require('../services/secondary').petitions(),
   legislation: () => require('../services/secondary').legislation(),

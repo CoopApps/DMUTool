@@ -19,6 +19,7 @@ const govuk = require('../services/govuk');
 const email = require('../services/email');
 const staffXml = require('../services/staffXml');
 const thinktanks = require('../services/thinktanks');
+const briefing = require('../services/briefing');
 
 const TZ = process.env.TZ || 'Europe/London';
 
@@ -52,6 +53,9 @@ function start() {
 
   // Daily 07:50 — morning email digest (after the 07:00–07:40 fetches)
   cron.schedule('50 7 * * *', safe('email-digest', email.sendDigest), opt);
+
+  // Weekly Monday 08:15 — Claude weekly briefing email for the SLT
+  cron.schedule('15 8 * * 1', safe('weekly-briefing', briefing.sendWeekly), opt);
 
   // Weekly Monday — oral questions rota, bills, legislation
   cron.schedule('0 6 * * 1', safe('oralQuestions', secondary.oralQuestions), opt);

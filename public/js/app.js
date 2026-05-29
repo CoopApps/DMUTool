@@ -125,6 +125,25 @@
     try { await postJSON(`/api/admin/run/${source}`); flash('Done'); location.reload(); }
     catch (e) { alert('Error: ' + e.message); btn.textContent = 'Run now'; btn.disabled = false; }
   }
+  async function weeklyBriefing(btn) {
+    const out = document.getElementById('briefing-out');
+    const ta = document.getElementById('briefing-text');
+    out.hidden = false;
+    ta.value = 'Generating briefing…';
+    const label = btn.textContent; btn.disabled = true; btn.textContent = 'Generating…';
+    try {
+      const data = await postJSON('/api/briefing', {});
+      ta.value = data.text || '(empty)';
+    } catch (e) {
+      ta.value = 'Error: ' + e.message;
+    } finally {
+      btn.disabled = false; btn.textContent = label;
+    }
+  }
+  function copyBriefing() {
+    const ta = document.getElementById('briefing-text');
+    ta.select(); navigator.clipboard.writeText(ta.value).then(() => flash('Copied'));
+  }
   function followUpDone(logId, btn) {
     postJSON(`/api/engagement/${logId}/done`).then(() => {
       const row = btn.closest('tr'); if (row) row.remove(); flash('Marked done');
@@ -156,5 +175,5 @@
 
   window.DMU = { openDraft, closeDraft, generateDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, runSource, quickExpert, followUpDone };
+    addContext, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing };
 })();

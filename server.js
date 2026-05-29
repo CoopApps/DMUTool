@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Views
+app.use('/action', require('./routes/action'));
 app.use('/digest', require('./routes/digest'));
 app.use('/diary', require('./routes/diary'));
 app.use('/committees', require('./routes/committees'));
