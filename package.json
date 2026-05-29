@@ -9,7 +9,8 @@
     "migrate": "node scripts/migrate.js",
     "crawl": "node scripts/crawl-contensis.js",
     "fetch-all": "node scripts/fetch-all.js",
-    "seed": "node db/seed.js"
+    "seed": "node db/seed.js",
+    "demo": "node scripts/seed-demo.js"
   },
   "license": "MIT",
   "dependencies": {
