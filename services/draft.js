@@ -46,6 +46,8 @@ async function draft({ item_id, item_type, output_type, mp_id }) {
     .map((a) => `${a.name}, ${a.title || ''}, ${a.department}: ${(a.profile_text || '').slice(0, 200)}`)
     .join('\n');
   const coursesBlock = matches.courses.map((c) => c.title).join(', ');
+  const eventsBlock = (matches.events || [])
+    .map((e) => `${e.title}${e.date ? ` (${(e.date || '').slice(0, 10)})` : ''}`).join('; ');
 
   let mpBlock = '';
   if (output_type === 'mp_email' && mp_id) {
@@ -68,6 +70,7 @@ async function draft({ item_id, item_type, output_type, mp_id }) {
     `Parliamentary item:\n${item.title}\n${(item.full_text || '').slice(0, 3000)}\n\n` +
     `Matched DMU academics:\n${academicsBlock || '(none matched)'}\n\n` +
     `Matched DMU courses: ${coursesBlock || '(none)'}\n` +
+    `Relevant DMU events (context): ${eventsBlock || '(none)'}\n` +
     mpBlock +
     `\nDraft ${instruction} in DMU's institutional voice — professional, direct, evidence-grounded, not promotional.`;
 

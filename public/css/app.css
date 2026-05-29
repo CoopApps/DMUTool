@@ -55,6 +55,7 @@ button.danger { background: var(--red); }
 
 .matches { background: #fafbfc; border-left: 3px solid var(--dmu); padding: 8px 12px; margin: 8px 0; font-size: 13px; }
 .matches.courses { border-left-color: var(--dmu-accent); }
+.matches.events { border-left-color: var(--green); }
 .matches ul { margin: 4px 0; padding-left: 18px; }
 .dept { color: var(--muted); font-weight: 400; font-size: 12px; }
 .why { color: var(--muted); font-size: 12px; }

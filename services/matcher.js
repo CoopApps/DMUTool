@@ -102,6 +102,7 @@ function matchItem(itemId, itemType) {
   }
 
   matchCourses(itemId, itemType, terms);
+  matchEvents(itemId, itemType, terms);
   return top;
 }
 
@@ -121,7 +122,25 @@ function matchCourses(itemId, itemType, terms) {
   return scored.slice(0, 5);
 }
 
-/** Fetch stored matches (academics + courses) joined to their records. */
+/** Score upcoming DMU events by keyword overlap. Stores top 3 future events. */
+function matchEvents(itemId, itemType, terms) {
+  // Only consider events that haven't already happened (date null or future).
+  const events = all(`SELECT id, title, description, keywords, date FROM dmu_events
+    WHERE date IS NULL OR date('now') <= date(date)`);
+  const scored = [];
+  for (const ev of events) {
+    const score = countHits(`${ev.title} ${ev.description} ${ev.keywords}`, terms);
+    if (score > 0) scored.push({ event_id: ev.id, score });
+  }
+  scored.sort((x, y) => y.score - x.score);
+  run('DELETE FROM event_matches WHERE item_id=? AND item_type=?', [itemId, itemType]);
+  const ins = db.prepare(`INSERT OR REPLACE INTO event_matches (item_id, item_type, event_id, score)
+    VALUES (?,?,?,?)`);
+  for (const m of scored.slice(0, 3)) ins.run(itemId, itemType, m.event_id, m.score);
+  return scored.slice(0, 3);
+}
+
+/** Fetch stored matches (academics + courses + events) joined to their records. */
 function getMatches(itemId, itemType, { limit = 5 } = {}) {
   const academics = all(
     `SELECT am.score, am.match_type, am.confidence, am.explanation,
@@ -137,8 +156,14 @@ function getMatches(itemId, itemType, { limit = 5 } = {}) {
      WHERE cm.item_id=? AND cm.item_type=? ORDER BY cm.score DESC LIMIT 5`,
     [itemId, itemType]
   );
+  const events = all(
+    `SELECT em.score, e.id, e.title, e.date, e.location, e.url
+     FROM event_matches em JOIN dmu_events e ON e.id = em.event_id
+     WHERE em.item_id=? AND em.item_type=? ORDER BY em.score DESC LIMIT 3`,
+    [itemId, itemType]
+  );
   const bodies = matchProfessionalBodies(academics);
-  return { academics, courses, professional_bodies: bodies };
+  return { academics, courses, events, professional_bodies: bodies };
 }
 
 /** For each matched academic's department, surface the relevant professional body
@@ -246,4 +271,4 @@ async function semanticMatch(itemId, itemType) {
   return { matches: getMatches(itemId, itemType).academics.filter((x) => x.match_type === 'semantic'), cached: false };
 }
 
-module.exports = { matchItem, matchCourses, getMatches, semanticMatch, matchProfessionalBodies };
+module.exports = { matchItem, matchCourses, matchEvents, getMatches, semanticMatch, matchProfessionalBodies };

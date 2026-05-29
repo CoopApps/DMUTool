@@ -114,6 +114,7 @@ const SOURCE_RUNNERS = {
   email: () => require('../services/email').sendDigest(),
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
   staffXml: () => require('../services/staffXml').run(),
+  dmuEvents: () => require('../services/contensis').crawl({ mode: 'events-only' }),
   bills: () => require('../services/secondary').bills(),
   petitions: () => require('../services/secondary').petitions(),
   legislation: () => require('../services/secondary').legislation(),

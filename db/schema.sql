@@ -139,6 +139,30 @@ CREATE TABLE IF NOT EXISTS research_projects (
   last_scraped     TEXT
 );
 
+CREATE TABLE IF NOT EXISTS dmu_events (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  contensis_id TEXT UNIQUE,
+  title        TEXT,
+  description  TEXT,
+  date         TEXT,
+  end_date     TEXT,
+  location     TEXT,
+  url          TEXT,
+  keywords     TEXT,
+  raw_json     TEXT,
+  last_scraped TEXT
+);
+
+CREATE TABLE IF NOT EXISTS event_matches (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id    INTEGER,
+  item_type  TEXT,
+  event_id   INTEGER,
+  score      REAL,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(item_id, item_type, event_id)
+);
+
 CREATE TABLE IF NOT EXISTS professional_bodies (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   name                TEXT,

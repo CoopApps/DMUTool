@@ -15,10 +15,12 @@ function deadlineClass(wdr) {
 }
 
 function card(q) {
-  const { academics, courses } = matcher.getMatches(q.id, 'committee_inquiry', { limit: 3 });
+  const { academics, courses, events } = matcher.getMatches(q.id, 'committee_inquiry', { limit: 3 });
   const acad = academics.map((a) =>
     `<li><b>${esc(a.name)}</b> <span class="dept">${esc(a.department || '')}</span> — ${esc(a.explanation || '')}</li>`).join('');
   const crs = courses.map((c) => `<li><a href="${esc(c.url || '#')}">${esc(c.title)}</a></li>`).join('');
+  const evs = (events || []).map((e) => `<li><a href="${esc(e.url || '#')}">${esc(e.title)}</a>
+    ${e.date ? `<span class="dept">${esc((e.date || '').slice(0,10))}</span>` : ''}</li>`).join('');
   const cls = deadlineClass(q.working_days_remaining);
   const wdrText = q.working_days_remaining == null ? 'TBC'
     : q.working_days_remaining < 0 ? 'closed' : `${q.working_days_remaining} working days`;
@@ -34,6 +36,7 @@ function card(q) {
     <p class="snippet">${esc((q.summary || '').slice(0, 200))}</p>
     <div class="matches"><strong>Matched academics</strong><ul>${acad || '<li class="empty">No matches yet.</li>'}</ul></div>
     ${crs ? `<div class="matches courses"><strong>Relevant courses</strong><ul>${crs}</ul></div>` : ''}
+    ${evs ? `<div class="matches events"><strong>DMU events (context)</strong><ul>${evs}</ul></div>` : ''}
     <form class="submission" onsubmit="return DMU.saveSubmission(event, ${q.id})">
       <label><input type="checkbox" name="submitted" ${q.submitted ? 'checked' : ''}> DMU submitted evidence</label>
       <input type="text" name="contributors" placeholder="Contributor names" value="${esc(q.contributors || '')}">

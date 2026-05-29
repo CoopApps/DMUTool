@@ -56,6 +56,9 @@ function start() {
   cron.schedule('30 6 * * 1', safe('bills', secondary.bills), opt);
   cron.schedule('0 8 * * 1', safe('legislation', secondary.legislation), opt);
 
+  // Weekly Monday — refresh upcoming DMU events (Contensis, events only)
+  cron.schedule('30 4 * * 1', safe('dmu-events', () => contensis.crawl({ mode: 'events-only' })), opt);
+
   // Monthly — full Contensis crawl (staff, courses, research, SDG) on the 1st
   cron.schedule('0 3 1 * *', safe('contensis-full', async () => {
     await contensis.crawl({ mode: 'full' });

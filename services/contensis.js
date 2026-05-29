@@ -145,6 +145,24 @@ function upsertResearch(e) {
     VALUES (?,?,?,?,?,?,?)`, [...params, cid]).lastInsertRowid;
 }
 
+function upsertEvent(e) {
+  const cid = e.sys && e.sys.id;
+  const title = field(e, 'title', 'name', 'eventTitle');
+  const desc = textOf(field(e, 'description', 'summary', 'overview', 'body'));
+  const existing = get('SELECT id FROM dmu_events WHERE contensis_id = ?', [cid]);
+  const kws = (desc.match(/\b[A-Za-z]{5,}\b/g) || []).slice(0, 30).join(',');
+  const params = [title, desc, field(e,'startDate','date','eventDate'), field(e,'endDate'),
+    field(e,'location','venue'), field(e,'url'), kws, JSON.stringify(e), new Date().toISOString()];
+  if (existing) {
+    run(`UPDATE dmu_events SET title=?, description=?, date=?, end_date=?, location=?, url=?,
+         keywords=?, raw_json=?, last_scraped=? WHERE id=?`, [...params, existing.id]);
+    return existing.id;
+  }
+  return run(`INSERT INTO dmu_events
+    (title, description, date, end_date, location, url, keywords, raw_json, last_scraped, contensis_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`, [...params, cid]).lastInsertRowid;
+}
+
 // ---- Profile page scraping (publications) ----------------------------------
 
 async function enrichPublications(limit = Infinity) {
@@ -186,6 +204,7 @@ function classify(name) {
   const n = (name || '').toLowerCase();
   if (/(staff|academic|profile|person|people|expert)/.test(n)) return 'academic';
   if (/(news|article|press)/.test(n)) return 'news';
+  if (/(event|conference|seminar|symposium|webinar|lecture)/.test(n)) return 'event';
   if (/(course|programme|program|degree)/.test(n)) return 'course';
   if (/(research|project|institute|centre|center)/.test(n)) return 'research';
   if (/(sdg|sustainab)/.test(n)) return 'sdg';
@@ -193,10 +212,13 @@ function classify(name) {
 }
 
 /**
- * Crawl. mode: 'discover' just lists types; otherwise crawls known categories.
- * options.incrementalNews limits news to the last day.
+ * Crawl. mode 'discover' just lists types and exits. `only` scopes the crawl to
+ * a subset of categories (e.g. ['news'] daily, ['event'] weekly); defaults to
+ * all. The legacy mode strings 'news-only'/'events-only' map to `only` too.
  */
-async function crawl({ mode = 'full', typeMap = null } = {}) {
+async function crawl({ mode = 'full', only = null, typeMap = null } = {}) {
+  if (mode === 'news-only') only = ['news'];
+  if (mode === 'events-only') only = ['event'];
   const started_at = new Date().toISOString();
   let fetched = 0, created = 0, error = null;
 
@@ -211,26 +233,26 @@ async function crawl({ mode = 'full', typeMap = null } = {}) {
     }
 
     // Build category -> [typeId] map (allow explicit override from env/typeMap).
-    const cats = { academic: [], news: [], course: [], research: [], sdg: [] };
+    const cats = { academic: [], news: [], course: [], research: [], sdg: [], event: [] };
     for (const t of types) {
       const c = (typeMap && typeMap[t.id]) || classify(t.name) || classify(t.id);
       if (c && cats[c]) cats[c].push(t.id);
     }
 
-    for (const tid of cats.academic) {
-      for await (const e of entries(tid)) { fetched++; upsertAcademic(e); created++; }
-    }
-    for (const tid of cats.course) {
-      for await (const e of entries(tid)) { fetched++; if (upsertCourse(e)) created++; }
-    }
-    for (const tid of cats.research) {
-      for await (const e of entries(tid)) { fetched++; if (upsertResearch(e)) created++; }
-    }
-    for (const tid of cats.sdg) {
-      for await (const e of entries(tid)) { fetched++; if (upsertResearch(e)) created++; }
-    }
-    for (const tid of cats.news) {
-      for await (const e of entries(tid)) { fetched++; if (upsertNews(e)) created++; }
+    const want = (cat) => !only || only.includes(cat);
+    const upserters = {
+      academic: (e) => { upsertAcademic(e); return true; },
+      course: upsertCourse,
+      research: upsertResearch,
+      sdg: upsertResearch,
+      news: upsertNews,
+      event: upsertEvent,
+    };
+    for (const cat of Object.keys(upserters)) {
+      if (!want(cat)) continue;
+      for (const tid of cats[cat]) {
+        for await (const e of entries(tid)) { fetched++; if (upserters[cat](e)) created++; }
+      }
     }
   } catch (e) {
     error = e.message;
@@ -241,4 +263,4 @@ async function crawl({ mode = 'full', typeMap = null } = {}) {
   return { fetched, created, error };
 }
 
-module.exports = { listContentTypes, crawl, enrichPublications, entries };
+module.exports = { listContentTypes, crawl, enrichPublications, entries, upsertEvent };

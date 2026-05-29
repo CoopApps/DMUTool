@@ -12,7 +12,7 @@ function lastUpdated() {
 }
 
 function matchSidebar(itemId, itemType) {
-  const { academics, courses } = matcher.getMatches(itemId, itemType, { limit: 3 });
+  const { academics, courses, events } = matcher.getMatches(itemId, itemType, { limit: 3 });
   let html = '';
   if (academics.length) {
     html += '<div class="matches"><strong>Matched academics</strong><ul>' +
@@ -23,6 +23,12 @@ function matchSidebar(itemId, itemType) {
   if (courses.length) {
     html += '<div class="matches courses"><strong>Relevant courses</strong><ul>' +
       courses.map((c) => `<li><a href="${esc(c.url || '#')}">${esc(c.title)}</a></li>`).join('') +
+      '</ul></div>';
+  }
+  if (events && events.length) {
+    html += '<div class="matches events"><strong>DMU events (context)</strong><ul>' +
+      events.map((e) => `<li><a href="${esc(e.url || '#')}">${esc(e.title)}</a>
+        ${e.date ? `<span class="dept">${esc((e.date || '').slice(0, 10))}</span>` : ''}</li>`).join('') +
       '</ul></div>';
   }
   return html;

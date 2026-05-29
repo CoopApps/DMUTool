@@ -25,6 +25,10 @@ Serves on `http://localhost:3000`.
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
 | Admin | `/admin` | Keyword groups, professional-body mappings, fetch log, DMU context, manual refresh. |
 
+Every item is also matched to **relevant DMU courses and upcoming DMU events**
+(e.g. a conference on knife crime shown as context against a related committee
+inquiry), surfaced in the item cards and folded into the drafting prompt.
+
 Two-tier academic matching:
 * **Tier 1** — fast keyword scoring, runs automatically on every new item.
 * **Tier 2** — semantic matching via the Claude API ("Find experts"), cached 7 days.
@@ -109,7 +113,7 @@ Contensis crawl in the background. Scheduled jobs start automatically unless
 | Morning email digest | daily 07:50 |
 | What's On (diary) | every 4 hours |
 | Committees, GOV.UK consultations | every 6 hours |
-| Oral questions rota, Bills, Legislation | weekly Monday |
+| Oral questions rota, Bills, Legislation, DMU events | weekly Monday |
 | Contensis full crawl (staff/courses/research/SDG) | monthly, 1st |
 
 Every run writes a row to `fetch_log` (visible in Admin → Fetch log, with a
