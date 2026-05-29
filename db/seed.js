@@ -101,6 +101,8 @@ function seed() {
     setContext(key, value);
   }
 
+  try { require('./seed-thinktanks').seedThinkTanks(); } catch (e) { console.warn('think-tank seed skipped:', e.message); }
+
   console.log('Seed complete:');
   console.log(`  keyword_groups:      ${get('SELECT COUNT(*) c FROM keyword_groups').c}`);
   console.log(`  professional_bodies: ${get('SELECT COUNT(*) c FROM professional_bodies').c}`);

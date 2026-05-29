@@ -136,6 +136,11 @@ per-source "Run now" button).
   Platform (keyword-queried), plus professional bodies and sector outlets (RSS
   where available, otherwise scraped with a 2s crawl delay and Google News RSS
   fallback).
+* **Think tanks**: ~170 UK think tanks scanned (RSS → scrape → Google News
+  fallback) with feed auto-validation and an adaptive cadence that backs off
+  sources that never produce relevant hits. Every report passes the keyword
+  prefilter at ingest and the contextual relevance gate in the background, so
+  only reports genuinely relevant to DMU surface (Sector watch → Think tanks).
 * **MP intelligence**: Parliament Members API (portrait + active-status
   reconciliation, also available as the `mpRefresh` manual source in Admin) and
   TheyWorkForYou (voting summaries / positions) on the MP profile.

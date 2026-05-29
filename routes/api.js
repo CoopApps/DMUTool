@@ -115,6 +115,7 @@ const SOURCE_RUNNERS = {
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
   staffXml: () => require('../services/staffXml').run(),
   dmuEvents: () => require('../services/contensis').crawl({ mode: 'events-only' }),
+  thinktanks: () => require('../services/thinktanks').run(),
   bills: () => require('../services/secondary').bills(),
   petitions: () => require('../services/secondary').petitions(),
   legislation: () => require('../services/secondary').legislation(),

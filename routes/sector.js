@@ -9,6 +9,7 @@ const TABS = [
   ['he_news', 'HE news'],
   ['professional_body', 'Professional bodies'],
   ['outlet', 'Outlets'],
+  ['think_tank', 'Think tanks'],
   ['govuk', 'Government'],
   ['legislation', 'Legislation'],
   ['bill', 'Bills'],
@@ -19,8 +20,10 @@ const TABS = [
 router.get('/', (req, res) => {
   const tab = req.query.tab && TABS.some(([t]) => t === req.query.tab) ? req.query.tab : 'he_news';
 
+  // Scored sources (think tanks) lead with the most relevant; others by date.
   const items = all(
-    `SELECT * FROM external_items WHERE source_type = ? ORDER BY date DESC LIMIT 100`, [tab]
+    `SELECT * FROM external_items WHERE source_type = ?
+     ORDER BY COALESCE(relevance_score, -1) DESC, date DESC LIMIT 100`, [tab]
   );
 
   const tabnav = TABS.map(([t, label]) =>
@@ -35,11 +38,14 @@ router.get('/', (req, res) => {
     } catch { /* ignore */ }
     const groups = (it.keyword_groups || '').split(',').filter(Boolean)
       .map((g) => `<span class="kw-pill">${esc(g)}</span>`).join('');
+    const rel = it.relevance_rationale
+      ? `<p class="why">DMU relevance (${esc(it.relevance_level || '')}): ${esc(it.relevance_rationale)}</p>` : '';
     return `<article class="card sector-card">
       <div class="card-head"><span class="src">${esc(it.source_name)}</span>
         <span class="date">${esc((it.date || '').slice(0,10))}</span>${meta}</div>
       <h3><a href="${esc(it.url || '#')}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
       <p class="snippet">${esc((it.summary || '').slice(0, 100))}</p>
+      ${rel}
       <div class="kw-pills">${groups}</div>
     </article>`;
   }).join('');
