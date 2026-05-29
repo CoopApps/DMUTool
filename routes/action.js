@@ -82,7 +82,10 @@ router.get('/', async (req, res) => {
   const stat = (n, label, href) => `<a class="stat" href="${href}"><span class="num">${n}</span>${esc(label)}</a>`;
 
   const body = `<div class="page-head"><h1>This week</h1>
-    <button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button></div>
+    <div>
+      <a class="csvbtn" href="/api/calendar.ics">Export deadlines (.ics)</a>
+      <button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button>
+    </div></div>
 
     <div class="stats">
       ${stat(newParl, 'new parliamentary', '/digest')}

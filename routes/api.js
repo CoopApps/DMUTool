@@ -53,6 +53,14 @@ router.get('/drafts/:id/export.docx', asyncH(async (req, res) => {
   res.send(buffer);
 }));
 
+// ---- Calendar (.ics) export ------------------------------------------------
+router.get('/calendar.ics', asyncH(async (req, res) => {
+  const ics = await require('../services/calendar').buildIcs();
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="dmu-parliamentary-deadlines.ics"');
+  res.send(ics);
+}));
+
 // ---- Weekly briefing (on demand) -------------------------------------------
 router.post('/briefing', asyncH(async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set — briefing disabled.' });
