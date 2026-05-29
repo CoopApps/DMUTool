@@ -22,6 +22,7 @@ Serves on `http://localhost:3000`.
 | Consultations | `/consultations` | Open government consultations (GOV.UK Search API), RAG-coded deadlines, matched academics, response tracker, draft button. |
 | Sector watch | `/sector` | HE news, professional bodies, outlets, legislation, bills, EDMs, petitions. |
 | MP tracker | `/mps` | Browse/search 622 MPs, engagement log, recent contributions, voting record, declared interests. |
+| Engagement | `/engagement` | Follow-ups due, a relevance-ranked target list of MPs active on our topics we've never contacted (CSV export), and stale relationships to re-engage. |
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
 | Admin | `/admin` | Keyword groups, professional-body mappings, fetch log, DMU context, manual refresh. |
 

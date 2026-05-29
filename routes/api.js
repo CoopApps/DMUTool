@@ -49,6 +49,27 @@ router.post('/consultations/:id/submission', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Engagement: clear a follow-up flag ------------------------------------
+router.post('/engagement/:logId/done', (req, res) => {
+  run('UPDATE engagement_log SET followup = 0 WHERE id = ?', [req.params.logId]);
+  res.json({ ok: true });
+});
+
+// ---- Engagement: export the target list as CSV -----------------------------
+router.get('/engagement/targets.csv', (req, res) => {
+  const { targetList } = require('./engagement');
+  const rows = targetList(req.query.group || '');
+  const esc = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const header = ['First name', 'Last name', 'Party', 'Constituency', 'Email', 'Relevant activity (90d)'];
+  const lines = [header.map(esc).join(',')];
+  for (const m of rows) {
+    lines.push([m.first_name, m.last_name, m.party, m.constituency, m.email, m.activity].map(esc).join(','));
+  }
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="dmu-target-mps${req.query.group ? '-' + req.query.group.replace(/\W+/g, '-') : ''}.csv"`);
+  res.send(lines.join('\r\n'));
+});
+
 // ---- MP contact logging ----------------------------------------------------
 router.post('/mps/:id/log', (req, res) => {
   const { date, type, description, notes, followup } = req.body;

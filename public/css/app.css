@@ -81,6 +81,10 @@ table { border-collapse: collapse; width: 100%; background: #fff; margin: 12px 0
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
 th { background: #f0f2f6; }
 .err { color: var(--red); font-size: 12px; }
+tr.overdue td { background: #fff3f3; }
+.csvbtn { padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px; text-decoration: none;
+  color: var(--dmu); background: #fff; font-size: 13px; }
+section { margin-bottom: 26px; }
 
 /* Diary */
 .weeknav { display: flex; gap: 14px; align-items: center; }

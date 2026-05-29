@@ -125,6 +125,11 @@
     try { await postJSON(`/api/admin/run/${source}`); flash('Done'); location.reload(); }
     catch (e) { alert('Error: ' + e.message); btn.textContent = 'Run now'; btn.disabled = false; }
   }
+  function followUpDone(logId, btn) {
+    postJSON(`/api/engagement/${logId}/done`).then(() => {
+      const row = btn.closest('tr'); if (row) row.remove(); flash('Marked done');
+    }).catch((e) => alert('Error: ' + e.message));
+  }
   function quickExpert(ev) { ev.preventDefault();
     const q = document.getElementById('quick-expert').value;
     location.href = '/academics?q=' + encodeURIComponent(q); return false; }
@@ -151,5 +156,5 @@
 
   window.DMU = { openDraft, closeDraft, generateDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, runSource, quickExpert };
+    addContext, runSource, quickExpert, followUpDone };
 })();
