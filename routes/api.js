@@ -17,7 +17,40 @@ router.post('/draft', asyncH(async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set — drafting disabled.' });
   const { item_id, item_type, output_type, mp_id } = req.body;
   const result = await draftSvc.draft({ item_id, item_type, output_type, mp_id });
-  res.json(result);
+  // Persist each generation as a new version in the drafts history.
+  const title = draftSvc.itemTitle(item_type, item_id);
+  const info = run(`INSERT INTO drafts (item_type, item_id, output_type, mp_id, item_title, content, status)
+    VALUES (?,?,?,?,?,?, 'generated')`,
+    [item_type, item_id, output_type, mp_id || null, title, result.text]);
+  res.json({ ...result, draft_id: info.lastInsertRowid });
+}));
+
+// ---- Draft history -----------------------------------------------------------
+router.put('/drafts/:id', (req, res) => {
+  const { content, status } = req.body;
+  const fields = [], params = [];
+  if (content != null) { fields.push('content=?'); params.push(content); }
+  if (status != null) { fields.push('status=?'); params.push(status); }
+  if (!fields.length) return res.json({ ok: true });
+  fields.push("updated_at=datetime('now')");
+  params.push(req.params.id);
+  run(`UPDATE drafts SET ${fields.join(', ')} WHERE id=?`, params);
+  res.json({ ok: true });
+});
+
+router.delete('/drafts/:id', (req, res) => {
+  run('DELETE FROM drafts WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+router.get('/drafts/:id/export.docx', asyncH(async (req, res) => {
+  const draft = get('SELECT * FROM drafts WHERE id=?', [req.params.id]);
+  if (!draft) return res.status(404).json({ error: 'Draft not found' });
+  const { buildDocx, fileName } = require('../services/docxExport');
+  const buffer = await buildDocx(draft);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName(draft)}"`);
+  res.send(buffer);
 }));
 
 // ---- Weekly briefing (on demand) -------------------------------------------

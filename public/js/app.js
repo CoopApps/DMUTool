@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const draftState = { item_id: null, item_type: null, mp_id: null };
+  const draftState = { item_id: null, item_type: null, mp_id: null, draft_id: null };
 
   async function postJSON(url, body) {
     const res = await fetch(url, {
@@ -43,10 +43,20 @@
         mp_id: draftState.mp_id,
       });
       ta.value = data.text || '(empty response)';
+      draftState.draft_id = data.draft_id || null;
+      const exp = document.getElementById('draft-export');
+      if (draftState.draft_id) { exp.href = `/api/drafts/${draftState.draft_id}/export.docx`; exp.style.display = ''; }
+      else exp.style.display = 'none';
     } catch (e) {
       ta.value = 'Error: ' + e.message;
     }
     updateCount();
+  }
+  function saveDraft() {
+    if (!draftState.draft_id) return flash('Generate first');
+    fetchPut(`/api/drafts/${draftState.draft_id}`,
+      { content: document.getElementById('draft-text').value, status: 'edited' })
+      .then(() => flash('Saved to Drafts')).catch((e) => alert('Error: ' + e.message));
   }
   function copyDraft() {
     const ta = document.getElementById('draft-text');
@@ -140,6 +150,25 @@
       btn.disabled = false; btn.textContent = label;
     }
   }
+  // ---- Drafts list -----------------------------------------------------------
+  function saveDraftRow(id) {
+    const content = document.getElementById('draft-content-' + id).value;
+    fetchPut(`/api/drafts/${id}`, { content, status: 'edited' })
+      .then(() => flash('Saved')).catch((e) => alert('Error: ' + e.message));
+  }
+  function draftStatus(id, status) {
+    fetchPut(`/api/drafts/${id}`, { status }).then(() => flash('Status: ' + status)).catch((e) => alert('Error: ' + e.message));
+  }
+  function copyDraftRow(id) {
+    const ta = document.getElementById('draft-content-' + id);
+    ta.select(); navigator.clipboard.writeText(ta.value).then(() => flash('Copied'));
+  }
+  function deleteDraft(id, btn) {
+    if (!confirm('Delete this draft?')) return;
+    fetch(`/api/drafts/${id}`, { method: 'DELETE' }).then(() => {
+      const c = btn.closest('.card'); if (c) c.remove(); flash('Deleted');
+    });
+  }
   function copyBriefing() {
     const ta = document.getElementById('briefing-text');
     ta.select(); navigator.clipboard.writeText(ta.value).then(() => flash('Copied'));
@@ -173,7 +202,8 @@
 
   document.addEventListener('input', (e) => { if (e.target.id === 'draft-text') updateCount(); });
 
-  window.DMU = { openDraft, closeDraft, generateDraft, copyDraft, findExperts, saveSubmission,
+  window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing };
+    addContext, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
+    saveDraftRow, draftStatus, copyDraftRow, deleteDraft };
 })();

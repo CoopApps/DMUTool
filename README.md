@@ -25,6 +25,7 @@ Serves on `http://localhost:3000`.
 | MP tracker | `/mps` | Browse/search 622 MPs, engagement log, recent contributions, voting record, declared interests. |
 | Engagement | `/engagement` | Follow-ups due, a relevance-ranked target list of MPs active on our topics we've never contacted (CSV export), and stale relationships to re-engage. |
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
+| Drafts | `/drafts` | History of every generated/edited draft with a status workflow (generated → edited → approved → sent), inline editing, and .docx export. |
 | Admin | `/admin` | Keyword groups, professional-body mappings, fetch log, DMU context, manual refresh. |
 
 Every item is also matched to **relevant DMU courses and upcoming DMU events**
@@ -36,7 +37,9 @@ Two-tier academic matching:
 * **Tier 2** — semantic matching via the Claude API ("Find experts"), cached 7 days.
 
 Drafting panel (Claude API) generates: media quote, press response, briefing
-note, committee submission opening, or a personalised MP engagement email.
+note, committee submission opening, or a personalised MP engagement email. Every
+generation is saved to the **Drafts** history (versioned), editable, with a
+status workflow and one-click **.docx export** for committee submissions.
 
 ---
 

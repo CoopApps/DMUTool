@@ -78,4 +78,12 @@ async function draft({ item_id, item_type, output_type, mp_id }) {
   return { text, output_type, matched_academics: matches.academics.length, matched_courses: matches.courses.length };
 }
 
-module.exports = { draft, OUTPUT_INSTRUCTIONS };
+/** Best-effort human title for an item, for labelling saved drafts. */
+function itemTitle(item_type, item_id) {
+  const sql = ITEM_QUERIES[item_type];
+  if (!sql) return '';
+  const row = get(sql, [item_id]);
+  return row ? (row.title || '') : '';
+}
+
+module.exports = { draft, itemTitle, OUTPUT_INSTRUCTIONS };

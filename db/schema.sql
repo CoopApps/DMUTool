@@ -285,6 +285,21 @@ CREATE TABLE IF NOT EXISTS mp_cache (
   UNIQUE(mp_id, cache_type)
 );
 
+-- Saved drafts — turns the generator into a record. Each generation is a new
+-- row (version history); manual edits update the latest.
+CREATE TABLE IF NOT EXISTS drafts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_type   TEXT,
+  item_id     INTEGER,
+  output_type TEXT,
+  mp_id       INTEGER,
+  item_title  TEXT,
+  content     TEXT,
+  status      TEXT DEFAULT 'generated',   -- generated | edited | approved | sent
+  created_at  TEXT DEFAULT (datetime('now')),
+  updated_at  TEXT DEFAULT (datetime('now'))
+);
+
 -- ========================= Background task queue =========================
 -- Drives intelligent, background processing (contextual relevance scoring).
 CREATE TABLE IF NOT EXISTS task_queue (
