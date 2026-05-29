@@ -27,6 +27,11 @@ function init() {
     );
   `);
 
+  // Provenance columns added after the initial release — add if missing so
+  // existing databases upgrade in place (CREATE TABLE IF NOT EXISTS won't).
+  ensureColumn('academics', 'source', "TEXT DEFAULT 'contensis'");
+  ensureColumn('academics', 'norm_name', 'TEXT');
+
   // Triggers to keep the FTS index in sync with the academics table.
   db.exec(`
     CREATE TRIGGER IF NOT EXISTS academics_ai AFTER INSERT ON academics BEGIN
@@ -44,6 +49,14 @@ function init() {
       VALUES (new.id, new.name, new.title, new.department, new.profile_text, new.publications_json);
     END;
   `);
+}
+
+/** Add a column to a table if it doesn't already exist. */
+function ensureColumn(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }
 
 // ---- Generic helpers -------------------------------------------------------

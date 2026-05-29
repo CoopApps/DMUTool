@@ -113,6 +113,7 @@ const SOURCE_RUNNERS = {
   govuk: () => require('../services/govuk').run(),
   email: () => require('../services/email').sendDigest(),
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
+  staffXml: () => require('../services/staffXml').run(),
   bills: () => require('../services/secondary').bills(),
   petitions: () => require('../services/secondary').petitions(),
   legislation: () => require('../services/secondary').legislation(),

@@ -79,18 +79,20 @@ function upsertAcademic(e) {
   const profile = textOf(field(e, 'profile', 'biography', 'personalProfile', 'researchInterests'));
   const existing = get('SELECT id FROM academics WHERE contensis_id = ?', [cid]);
   const profileUrl = field(e, 'url', 'profileUrl');
+  const { normName } = require('../lib/names');
   const params = [name, field(e,'jobTitle','title'), department, field(e,'faculty'),
     field(e,'email','emailAddress'), field(e,'phone','telephone'), profileUrl, profile,
-    textOf(field(e,'researchGroup')), JSON.stringify(e), new Date().toISOString()];
+    textOf(field(e,'researchGroup')), JSON.stringify(e), new Date().toISOString(), normName(name)];
   if (existing) {
     run(`UPDATE academics SET name=?, title=?, department=?, faculty=?, email=?, phone=?,
-         profile_url=?, profile_text=?, research_group=?, raw_json=?, last_scraped=? WHERE id=?`,
+         profile_url=?, profile_text=?, research_group=?, raw_json=?, last_scraped=?, norm_name=?,
+         source='contensis' WHERE id=?`,
       [...params, existing.id]);
     return existing.id;
   }
   return run(`INSERT INTO academics
-    (name, title, department, faculty, email, phone, profile_url, profile_text, research_group, raw_json, last_scraped, contensis_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, [...params, cid]).lastInsertRowid;
+    (name, title, department, faculty, email, phone, profile_url, profile_text, research_group, raw_json, last_scraped, norm_name, contensis_id, source)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, 'contensis')`, [...params, cid]).lastInsertRowid;
 }
 
 function upsertNews(e) {

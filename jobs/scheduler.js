@@ -17,6 +17,7 @@ const contensis = require('../services/contensis');
 const guardian = require('../services/guardian');
 const govuk = require('../services/govuk');
 const email = require('../services/email');
+const staffXml = require('../services/staffXml');
 
 const TZ = process.env.TZ || 'Europe/London';
 
@@ -58,7 +59,8 @@ function start() {
   // Monthly — full Contensis crawl (staff, courses, research, SDG) on the 1st
   cron.schedule('0 3 1 * *', safe('contensis-full', async () => {
     await contensis.crawl({ mode: 'full' });
-    await contensis.enrichPublications();
+    await staffXml.run();          // cross-reference XML + reconcile legacy
+    await contensis.enrichPublications();   // also enriches new XML stubs
   }), opt);
 
   console.log(`[cron] scheduler started (timezone ${TZ}).`);

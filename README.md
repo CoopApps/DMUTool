@@ -122,7 +122,10 @@ per-source "Run now" button).
   the egg-timer recess calendar and legislation.gov.uk SI Atom feeds.
 * **DMU**: Contensis delivery API (staff, news, courses, research, SDG), the
   academic-staff XML listing, and individual profile-page scraping for
-  publication lists.
+  publication lists. The `staffXml` source cross-references the XML listing to
+  capture staff missing from Contensis (as stubs the scraper later enriches) and
+  reconciles the legacy Access academics against the live data — Contensis always
+  takes precedence; each record's provenance is shown in the expert finder.
 * **Government**: GOV.UK Search API (open consultations → Consultations tracker;
   announcements/policy papers → Sector watch "Government" tab).
 * **Sector**: THE, HEPI, OfS, UUK, UKRI, Wonkhe, SRHE, the Guardian Open

@@ -24,6 +24,9 @@ async function main() {
   if (arg === '--full') {
     const res = await contensis.crawl({ mode: 'full' });
     console.log('Crawl result:', res);
+    console.log('Cross-referencing staff XML feed + reconciling legacy academics…');
+    const xref = await require('../services/staffXml').run();
+    console.log('Cross-reference result:', xref);
     console.log('Scraping publication lists from profile pages…');
     const n = await contensis.enrichPublications();
     console.log(`Enriched ${n} academics.`);
