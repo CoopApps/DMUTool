@@ -98,7 +98,18 @@ async function run_() {
   // 1) external_sources (HE news + outlets)
   for (const s of all('SELECT * FROM external_sources')) {
     try {
-      const r = s.feed_url ? await ingestRss(s) : await ingestScrape(s);
+      let r;
+      if (s.feed_url) {
+        try {
+          r = await ingestRss(s);
+        } catch (feedErr) {
+          // RSS URL wrong/blocked — fall back to scraping (incl. Google News).
+          if (s.scrape_url) r = await ingestScrape(s);
+          else throw feedErr;
+        }
+      } else {
+        r = await ingestScrape(s);
+      }
       fetched += r.fetched; created += r.created;
     } catch (e) {
       error = (error ? error + '; ' : '') + `${s.name}: ${e.message}`;

@@ -51,6 +51,7 @@ const EXTERNAL_SOURCES = [
   ['UKRI news', 'he_news', 'https://www.ukri.org/news/feed/', null, null, 'daily'],
   ['Wonkhe', 'he_news', 'https://wonkhe.com/feed/', null, null, 'daily'],
   ['SRHE blog', 'he_news', 'https://srheblog.com/feed', null, null, 'weekly'],
+  ['University Alliance', 'he_news', 'https://www.unialliance.ac.uk/feed/', 'https://www.unialliance.ac.uk/news/', null, 'daily'],
   ['Research Professional News', 'outlet', 'https://news.google.com/rss/search?q=site:researchprofessional.com&hl=en-GB&gl=GB', null, null, 'daily'],
   ['Guardian Higher Education', 'outlet', 'https://www.theguardian.com/education/higher-education/rss', null, null, 'daily'],
   ['BBC Education', 'outlet', 'https://feeds.bbci.co.uk/news/education/rss.xml', null, null, 'daily'],
