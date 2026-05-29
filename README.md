@@ -24,6 +24,7 @@ Serves on `http://localhost:3000`.
 | Sector watch | `/sector` | HE news, professional bodies, outlets, legislation, bills, EDMs, petitions. |
 | MP tracker | `/mps` | Browse/search 622 MPs, engagement log, recent contributions, voting record, declared interests. |
 | Engagement | `/engagement` | Follow-ups due, a relevance-ranked target list of MPs active on our topics we've never contacted (CSV export), and stale relationships to re-engage. |
+| APPGs | `/appgs` | All-Party Parliamentary Groups whose subject matches DMU topics, with officer MPs linked as an engagement route (scraped register — no API). |
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
 | Drafts | `/drafts` | History of every generated/edited draft with a status workflow (generated → edited → approved → sent), inline editing, and .docx export. |
 | Admin | `/admin` | Keyword groups, professional-body mappings, fetch log, DMU context, manual refresh. |
@@ -135,6 +136,11 @@ per-source "Run now" button).
   capture staff missing from Contensis (as stubs the scraper later enriches) and
   reconciles the legacy Access academics against the live data — Contensis always
   takes precedence; each record's provenance is shown in the expert finder.
+* **Briefings**: House of Commons Library research briefings and POST POSTnotes
+  (RSS, Google News fallback) — neutral expert analysis, relevance-gated and
+  matched to academics (Sector watch → Library & POST).
+* **APPGs**: the All-Party Parliamentary Group register (scraped — no API);
+  relevant groups' officer MPs become an engagement route.
 * **Government**: GOV.UK Search API (open consultations → Consultations tracker;
   announcements/policy papers → Sector watch "Government" tab).
 * **Sector**: THE, HEPI, OfS, UUK, UKRI, Wonkhe, SRHE, the Guardian Open

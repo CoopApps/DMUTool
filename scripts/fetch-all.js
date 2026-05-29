@@ -23,6 +23,8 @@ const jobs = [
   ['guardian', () => require('../services/guardian').run()],
   ['govuk', () => require('../services/govuk').run()],
   ['thinktanks', () => require('../services/thinktanks').run()],
+  ['briefings', () => require('../services/briefings').run()],
+  ['appgs', () => require('../services/appgs').run()],
 ];
 
 async function main() {

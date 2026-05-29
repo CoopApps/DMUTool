@@ -19,6 +19,8 @@ const govuk = require('../services/govuk');
 const email = require('../services/email');
 const staffXml = require('../services/staffXml');
 const thinktanks = require('../services/thinktanks');
+const briefings = require('../services/briefings');
+const appgs = require('../services/appgs');
 const briefing = require('../services/briefing');
 
 const TZ = process.env.TZ || 'Europe/London';
@@ -42,6 +44,8 @@ function start() {
   cron.schedule('30 7 * * *', safe('feeds', feeds.run), opt);
   cron.schedule('40 7 * * *', safe('guardian', guardian.run), opt);
   cron.schedule('0 9 * * *', safe('thinktanks', thinktanks.run), opt);   // daily adaptive sweep
+  cron.schedule('30 7 * * *', safe('briefings', briefings.run), opt);    // Commons Library + POSTnotes
+  cron.schedule('0 5 * * 1', safe('appgs', appgs.run), opt);             // weekly (register changes ~6-weekly)
   cron.schedule('45 7 * * *', safe('dmu-news', () => contensis.crawl({ mode: 'news-only' }).catch(()=>{})), opt);
 
   // Every 4 hours — What's On

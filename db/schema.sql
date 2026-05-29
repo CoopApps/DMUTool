@@ -316,6 +316,22 @@ CREATE TABLE IF NOT EXISTS task_queue (
   UNIQUE(kind, item_type, item_id)
 );
 
+-- ========================= APPGs =========================
+-- All-Party Parliamentary Groups (scraped register — no API). Matched groups
+-- become an engagement route via their officer MPs.
+CREATE TABLE IF NOT EXISTS appgs (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  name          TEXT UNIQUE,
+  url           TEXT,
+  purpose       TEXT,
+  officers_json TEXT,
+  secretariat   TEXT,
+  keyword_group TEXT,
+  matched       INTEGER DEFAULT 0,
+  last_scraped  TEXT,
+  created_at    TEXT DEFAULT (datetime('now'))
+);
+
 -- ========================= Think tanks =========================
 CREATE TABLE IF NOT EXISTS think_tanks (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,

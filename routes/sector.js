@@ -10,6 +10,7 @@ const TABS = [
   ['professional_body', 'Professional bodies'],
   ['outlet', 'Outlets'],
   ['think_tank', 'Think tanks'],
+  ['briefing', 'Library & POST'],
   ['govuk', 'Government'],
   ['legislation', 'Legislation'],
   ['bill', 'Bills'],
