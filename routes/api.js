@@ -101,6 +101,7 @@ const SOURCE_RUNNERS = {
   committees: () => require('../services/committees').run(),
   whatson: () => require('../services/whatson').run(),
   feeds: () => require('../services/feeds').run(),
+  guardian: () => require('../services/guardian').run(),
   bills: () => require('../services/secondary').bills(),
   petitions: () => require('../services/secondary').petitions(),
   legislation: () => require('../services/secondary').legislation(),

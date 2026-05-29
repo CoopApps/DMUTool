@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
       <button>Save</button>
     </form></td></tr>`).join('');
 
-  const SOURCES = ['hansard','writtenQuestions','committees','whatson','feeds','bills','petitions','legislation','edms','oralQuestions','contensis'];
+  const SOURCES = ['hansard','writtenQuestions','committees','whatson','feeds','guardian','bills','petitions','legislation','edms','oralQuestions','contensis'];
   const logBySource = {};
   for (const l of logs) if (!logBySource[l.source]) logBySource[l.source] = l;
   const logRows = SOURCES.map((s) => {

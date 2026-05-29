@@ -20,6 +20,7 @@ const jobs = [
   ['legislation', () => require('../services/secondary').legislation()],
   ['edms', () => require('../services/secondary').edms()],
   ['feeds', () => require('../services/feeds').run()],
+  ['guardian', () => require('../services/guardian').run()],
 ];
 
 async function main() {

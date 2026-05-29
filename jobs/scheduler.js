@@ -14,6 +14,7 @@ const whatson = require('../services/whatson');
 const feeds = require('../services/feeds');
 const secondary = require('../services/secondary');
 const contensis = require('../services/contensis');
+const guardian = require('../services/guardian');
 
 const TZ = process.env.TZ || 'Europe/London';
 
@@ -34,6 +35,7 @@ function start() {
   cron.schedule('15 7 * * *', safe('petitions', secondary.petitions), opt);
   cron.schedule('20 7 * * *', safe('edms', secondary.edms), opt);
   cron.schedule('30 7 * * *', safe('feeds', feeds.run), opt);
+  cron.schedule('40 7 * * *', safe('guardian', guardian.run), opt);
   cron.schedule('45 7 * * *', safe('dmu-news', () => contensis.crawl({ mode: 'news-only' }).catch(()=>{})), opt);
 
   // Every 4 hours — What's On
