@@ -1,0 +1,26 @@
+{
+  "name": "dmu-parliamentary-intelligence",
+  "version": "1.0.0",
+  "description": "DMU Parliamentary Intelligence Tool — targeted parliamentary monitoring matched to DMU academic expertise",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrate": "node scripts/migrate.js",
+    "crawl": "node scripts/crawl-contensis.js",
+    "fetch-all": "node scripts/fetch-all.js",
+    "seed": "node db/seed.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "better-sqlite3": "^11.3.0",
+    "cheerio": "^1.0.0",
+    "contensis-delivery-api": "^1.4.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0",
+    "rss-parser": "^3.13.0"
+  }
+}

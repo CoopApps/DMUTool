@@ -1,0 +1,152 @@
+/* DMU Parliamentary Intelligence — frontend glue (vanilla JS). */
+(function () {
+  'use strict';
+
+  const draftState = { item_id: null, item_type: null, mp_id: null };
+
+  async function postJSON(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+  }
+
+  // ---- Draft slide-out -----------------------------------------------------
+  function openDraft(itemId, itemType, outputType, mpId) {
+    draftState.item_id = itemId;
+    draftState.item_type = itemType;
+    draftState.mp_id = mpId || null;
+    const panel = document.getElementById('draft-panel');
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+    if (outputType) document.getElementById('draft-type').value = outputType;
+    document.getElementById('draft-text').value = '';
+    generateDraft();
+  }
+  function closeDraft() {
+    const panel = document.getElementById('draft-panel');
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+  async function generateDraft() {
+    const ta = document.getElementById('draft-text');
+    ta.value = 'Generating…';
+    try {
+      const data = await postJSON('/api/draft', {
+        item_id: draftState.item_id,
+        item_type: draftState.item_type,
+        output_type: document.getElementById('draft-type').value,
+        mp_id: draftState.mp_id,
+      });
+      ta.value = data.text || '(empty response)';
+    } catch (e) {
+      ta.value = 'Error: ' + e.message;
+    }
+    updateCount();
+  }
+  function copyDraft() {
+    const ta = document.getElementById('draft-text');
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => flash('Copied'));
+  }
+  function updateCount() {
+    document.getElementById('draft-count').textContent =
+      document.getElementById('draft-text').value.length + ' chars';
+  }
+
+  // ---- Find experts (Tier 2) ----------------------------------------------
+  async function findExperts(itemId, itemType, btn) {
+    const original = btn.textContent;
+    btn.textContent = 'Matching…';
+    btn.disabled = true;
+    try {
+      const data = await postJSON('/api/match/semantic', { item_id: itemId, item_type: itemType });
+      renderExperts(btn, data.matches || []);
+    } catch (e) {
+      alert('Find experts failed: ' + e.message);
+    } finally {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  }
+  function renderExperts(btn, matches) {
+    const card = btn.closest('.card');
+    let box = card.querySelector('.semantic-matches');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'matches semantic-matches';
+      card.querySelector('.card-actions').before(box);
+    }
+    box.innerHTML = '<strong>Semantic matches</strong><ul>' +
+      (matches.length ? matches.map((m) =>
+        `<li><b>${esc(m.name)}</b> <span class="dept">${esc(m.department || '')}</span>
+         <span class="kw-pill">${esc(m.confidence || '')}</span><br>
+         <span class="why">${esc(m.explanation || '')}</span></li>`).join('')
+        : '<li class="empty">No additional matches.</li>') + '</ul>';
+  }
+
+  // ---- Forms ---------------------------------------------------------------
+  function formData(form) {
+    const o = {};
+    new FormData(form).forEach((v, k) => { o[k] = v; });
+    Array.from(form.querySelectorAll('input[type=checkbox]')).forEach((c) => { o[c.name] = c.checked; });
+    return o;
+  }
+  function handle(promise, okMsg) {
+    promise.then(() => { flash(okMsg || 'Saved'); }).catch((e) => alert('Error: ' + e.message));
+    return false;
+  }
+
+  function saveSubmission(ev, id) { ev.preventDefault();
+    return handle(postJSON(`/api/committees/${id}/submission`, formData(ev.target))); }
+  function logContact(ev, id) { ev.preventDefault();
+    return handle(postJSON(`/api/mps/${id}/log`, formData(ev.target)).then(() => location.reload())); }
+  function addGroup(ev) { ev.preventDefault();
+    return handle(postJSON('/api/admin/groups', formData(ev.target)).then(() => location.reload())); }
+  function saveKeywords(ev, id) { ev.preventDefault();
+    return handle(fetchPut(`/api/admin/groups/${id}`, formData(ev.target))); }
+  function deleteGroup(id) {
+    if (!confirm('Delete this keyword group?')) return;
+    fetch(`/api/admin/groups/${id}`, { method: 'DELETE' }).then(() => location.reload()); }
+  function saveBody(ev, id) { ev.preventDefault();
+    return handle(fetchPut(`/api/admin/bodies/${id}`, formData(ev.target))); }
+  function saveContext(ev, key) { ev.preventDefault();
+    return handle(postJSON('/api/admin/context', { key, value: ev.target.value.value })); }
+  function addContext(ev) { ev.preventDefault();
+    return handle(postJSON('/api/admin/context', formData(ev.target)).then(() => location.reload())); }
+  async function runSource(source, btn) {
+    btn.textContent = 'Running…'; btn.disabled = true;
+    try { await postJSON(`/api/admin/run/${source}`); flash('Done'); location.reload(); }
+    catch (e) { alert('Error: ' + e.message); btn.textContent = 'Run now'; btn.disabled = false; }
+  }
+  function quickExpert(ev) { ev.preventDefault();
+    const q = document.getElementById('quick-expert').value;
+    location.href = '/academics?q=' + encodeURIComponent(q); return false; }
+
+  async function fetchPut(url, body) {
+    const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+    return res.json();
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function flash(msg) {
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0a1f44;color:#fff;padding:8px 16px;border-radius:6px;z-index:200';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  }
+
+  document.addEventListener('input', (e) => { if (e.target.id === 'draft-text') updateCount(); });
+
+  window.DMU = { openDraft, closeDraft, generateDraft, copyDraft, findExperts, saveSubmission,
+    logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext, addContext, runSource, quickExpert };
+})();

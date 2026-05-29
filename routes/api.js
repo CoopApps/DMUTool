@@ -1,0 +1,118 @@
+'use strict';
+
+const express = require('express');
+const router = express.Router();
+const { all, get, run } = require('../db/database');
+const matcher = require('../services/matcher');
+const draftSvc = require('../services/draft');
+const { isConfigured } = require('../services/claude');
+
+const asyncH = (fn) => (req, res) => Promise.resolve(fn(req, res)).catch((e) => {
+  console.error('API error:', e.message);
+  res.status(500).json({ error: e.message });
+});
+
+// ---- Drafting --------------------------------------------------------------
+router.post('/draft', asyncH(async (req, res) => {
+  if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set — drafting disabled.' });
+  const { item_id, item_type, output_type, mp_id } = req.body;
+  const result = await draftSvc.draft({ item_id, item_type, output_type, mp_id });
+  res.json(result);
+}));
+
+// ---- Tier 2 semantic matching ----------------------------------------------
+router.post('/match/semantic', asyncH(async (req, res) => {
+  if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set — semantic matching disabled.' });
+  const { item_id, item_type } = req.body;
+  const result = await matcher.semanticMatch(item_id, item_type);
+  res.json(result);
+}));
+
+// ---- Tier 1 keyword matches (read) -----------------------------------------
+router.get('/match/:type/:id', (req, res) => {
+  res.json(matcher.getMatches(parseInt(req.params.id, 10), req.params.type));
+});
+
+// ---- Committee submission tracker ------------------------------------------
+router.post('/committees/:id/submission', (req, res) => {
+  const { submitted, contributors, submission_url } = req.body;
+  run(`UPDATE committee_inquiries SET submitted=?, contributors=?, submission_url=? WHERE id=?`,
+    [submitted ? 1 : 0, contributors || null, submission_url || null, req.params.id]);
+  res.json({ ok: true });
+});
+
+// ---- MP contact logging ----------------------------------------------------
+router.post('/mps/:id/log', (req, res) => {
+  const { date, type, description, notes, followup } = req.body;
+  run(`INSERT INTO engagement_log (mp_id, date, type, description, notes, followup)
+       VALUES (?,?,?,?,?,?)`,
+    [req.params.id, date || new Date().toISOString(), type, description, notes, followup ? 1 : 0]);
+  res.json({ ok: true });
+});
+
+// ---- Academic search (API form) --------------------------------------------
+router.post('/academics/search', (req, res) => {
+  const q = (req.body.q || '').trim();
+  if (!q) return res.json({ results: [] });
+  const like = `%${q}%`;
+  const results = all(
+    `SELECT id, name, title, department, email, phone, profile_url
+     FROM academics WHERE name LIKE ? OR department LIKE ? OR profile_text LIKE ? LIMIT 20`,
+    [like, like, like]
+  );
+  res.json({ results });
+});
+
+// ---- Admin: keyword groups -------------------------------------------------
+router.post('/admin/groups', (req, res) => {
+  const { name, keywords } = req.body;
+  run(`INSERT INTO keyword_groups (name, keywords) VALUES (?,?)
+       ON CONFLICT(name) DO UPDATE SET keywords=excluded.keywords`, [name, keywords || '']);
+  res.json({ ok: true });
+});
+router.put('/admin/groups/:id', (req, res) => {
+  run('UPDATE keyword_groups SET keywords=? WHERE id=?', [req.body.keywords || '', req.params.id]);
+  res.json({ ok: true });
+});
+router.delete('/admin/groups/:id', (req, res) => {
+  run('DELETE FROM keyword_groups WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ---- Admin: professional bodies --------------------------------------------
+router.put('/admin/bodies/:id', (req, res) => {
+  run('UPDATE professional_bodies SET departments_json=?, scrape_selectors=? WHERE id=?',
+    [req.body.departments_json || null, req.body.scrape_selectors || null, req.params.id]);
+  res.json({ ok: true });
+});
+
+// ---- Admin: dmu context ----------------------------------------------------
+router.post('/admin/context', (req, res) => {
+  const { key, value } = req.body;
+  run(`INSERT INTO dmu_context (key, value, last_updated) VALUES (?,?,datetime('now'))
+       ON CONFLICT(key) DO UPDATE SET value=excluded.value, last_updated=datetime('now')`, [key, value || '']);
+  res.json({ ok: true });
+});
+
+// ---- Admin: manual source run ----------------------------------------------
+const SOURCE_RUNNERS = {
+  hansard: () => require('../services/hansard').run(),
+  writtenQuestions: () => require('../services/writtenQuestions').run(),
+  committees: () => require('../services/committees').run(),
+  whatson: () => require('../services/whatson').run(),
+  feeds: () => require('../services/feeds').run(),
+  bills: () => require('../services/secondary').bills(),
+  petitions: () => require('../services/secondary').petitions(),
+  legislation: () => require('../services/secondary').legislation(),
+  edms: () => require('../services/secondary').edms(),
+  oralQuestions: () => require('../services/secondary').oralQuestions(),
+  contensis: () => require('../services/contensis').crawl({ mode: 'full' }),
+};
+router.post('/admin/run/:source', asyncH(async (req, res) => {
+  const runner = SOURCE_RUNNERS[req.params.source];
+  if (!runner) return res.status(404).json({ error: 'Unknown source' });
+  const result = await runner();
+  res.json({ ok: true, result });
+}));
+
+module.exports = router;
