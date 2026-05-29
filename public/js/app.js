@@ -150,6 +150,20 @@
       btn.disabled = false; btn.textContent = label;
     }
   }
+  // ---- Triage flags + match feedback -----------------------------------------
+  function flag(type, id, field, btn) {
+    postJSON('/api/flag', { item_type: type, item_id: id, field }).then((d) => {
+      const on = d.state && d.state[field];
+      if (field === 'ignored' && on) { const c = btn.closest('.card'); if (c) c.remove(); flash('Ignored'); return; }
+      if (field === 'flagged') { btn.classList.toggle('on', !!on); flash(on ? 'Flagged for VC' : 'Unflagged'); }
+    }).catch((e) => alert('Error: ' + e.message));
+  }
+  function matchVote(academicId, itemType, itemId, vote, btn) {
+    postJSON('/api/match/feedback', { academic_id: academicId, item_type: itemType, item_id: itemId, vote })
+      .then(() => { const w = btn.closest('.vote'); if (w) w.innerHTML = '<span class="why">thanks</span>'; })
+      .catch((e) => alert('Error: ' + e.message));
+  }
+
   // ---- Drafts list -----------------------------------------------------------
   function saveDraftRow(id) {
     const content = document.getElementById('draft-content-' + id).value;
@@ -205,5 +219,5 @@
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
     addContext, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
-    saveDraftRow, draftStatus, copyDraftRow, deleteDraft };
+    saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

@@ -333,6 +333,27 @@ CREATE TABLE IF NOT EXISTS drafts (
   updated_at  TEXT DEFAULT (datetime('now'))
 );
 
+-- Per-item triage state (flag for VC / ignore / read).
+CREATE TABLE IF NOT EXISTS item_flags (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_type  TEXT,
+  item_id    INTEGER,
+  flagged    INTEGER DEFAULT 0,
+  ignored    INTEGER DEFAULT 0,
+  read       INTEGER DEFAULT 0,
+  updated_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(item_type, item_id)
+);
+
+-- Match feedback — thumbs up/down accumulate per academic + topic to tune scoring.
+CREATE TABLE IF NOT EXISTS academic_feedback (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  academic_id   INTEGER,
+  keyword_group TEXT,
+  votes         INTEGER DEFAULT 0,
+  UNIQUE(academic_id, keyword_group)
+);
+
 -- ========================= Background task queue =========================
 -- Drives intelligent, background processing (contextual relevance scoring).
 CREATE TABLE IF NOT EXISTS task_queue (

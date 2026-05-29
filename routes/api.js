@@ -76,6 +76,37 @@ router.post('/match/semantic', asyncH(async (req, res) => {
   res.json(result);
 }));
 
+// ---- Per-item triage flags -------------------------------------------------
+router.post('/flag', (req, res) => {
+  const { item_type, item_id, field } = req.body;
+  if (!['flagged', 'ignored', 'read'].includes(field)) return res.status(400).json({ error: 'bad field' });
+  run(`INSERT INTO item_flags (item_type, item_id, ${field}, updated_at)
+       VALUES (?, ?, 1, datetime('now'))
+       ON CONFLICT(item_type, item_id) DO UPDATE SET ${field} = 1 - ${field}, updated_at = datetime('now')`,
+    [item_type, item_id]);
+  const row = get('SELECT flagged, ignored, read FROM item_flags WHERE item_type=? AND item_id=?', [item_type, item_id]);
+  res.json({ ok: true, state: row });
+});
+
+// ---- Match feedback (thumbs up/down) ---------------------------------------
+router.post('/match/feedback', (req, res) => {
+  const { academic_id, item_type, item_id, vote } = req.body;
+  const v = parseInt(vote, 10) >= 0 ? 1 : -1;
+  const ITEM = { parliamentary_item: ['parliamentary_items', 'keyword_group'],
+    committee_inquiry: ['committee_inquiries', 'keyword_group'],
+    consultation: ['consultations', 'keyword_group'],
+    external_item: ['external_items', 'keyword_groups'] };
+  const map = ITEM[item_type];
+  if (!map) return res.status(400).json({ error: 'bad item_type' });
+  const itemRow = get(`SELECT ${map[1]} AS kg FROM ${map[0]} WHERE id = ?`, [item_id]);
+  const group = (itemRow && itemRow.kg ? String(itemRow.kg).split(',')[0] : '').trim();
+  if (!group) return res.json({ ok: true, note: 'no topic to attribute feedback to' });
+  run(`INSERT INTO academic_feedback (academic_id, keyword_group, votes) VALUES (?, ?, ?)
+       ON CONFLICT(academic_id, keyword_group) DO UPDATE SET votes = votes + ?`,
+    [academic_id, group, v, v]);
+  res.json({ ok: true });
+});
+
 // ---- Tier 1 keyword matches (read) -----------------------------------------
 router.get('/match/:type/:id', (req, res) => {
   res.json(matcher.getMatches(parseInt(req.params.id, 10), req.params.type));

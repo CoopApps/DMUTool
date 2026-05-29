@@ -21,6 +21,10 @@ a { color: var(--dmu); }
 .topsearch input { background: rgba(255,255,255,.15); border: 0; color: #fff; border-radius: 6px; padding: 6px 10px; }
 .topsearch input::placeholder { color: #cfd6e4; }
 .result { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.flagbar button { background: #eef1f6; color: #445; border: 1px solid var(--line); padding: 6px 10px; }
+.flagbar button.on { background: var(--amber); color: #fff; border-color: var(--amber); }
+.vote button { background: transparent; border: 0; cursor: pointer; font-size: 13px; padding: 0 2px; }
+.rag.green { color: var(--green); font-weight: 700; } .rag.grey { color: var(--grey); }
 .badge { background: var(--dmu-accent); color: #fff; border-radius: 10px; font-size: 11px;
   padding: 1px 6px; margin-left: 4px; }
 

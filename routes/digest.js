@@ -16,7 +16,8 @@ function matchSidebar(itemId, itemType) {
   let html = '';
   if (academics.length) {
     html += '<div class="matches"><strong>Matched academics</strong><ul>' +
-      academics.map((a) => `<li><b>${esc(a.name)}</b> <span class="dept">${esc(a.department || '')}</span><br>
+      academics.map((a) => `<li><b>${esc(a.name)}</b> <span class="dept">${esc(a.department || '')}</span>
+        <span class="vote"><button title="Good match" onclick="DMU.matchVote(${a.id},'${itemType}',${itemId},1,this)">👍</button><button title="Poor match" onclick="DMU.matchVote(${a.id},'${itemType}',${itemId},-1,this)">👎</button></span><br>
         <span class="why">${esc(a.explanation || '')}</span></li>`).join('') +
       '</ul></div>';
   }
@@ -34,17 +35,30 @@ function matchSidebar(itemId, itemType) {
   return html;
 }
 
+function flagState(type, id) {
+  return get('SELECT flagged, ignored FROM item_flags WHERE item_type=? AND item_id=?', [type, id]) || {};
+}
+function flagControls(type, id, f) {
+  return `<span class="flagbar">
+    <button class="${f.flagged ? 'on' : ''}" title="Flag for VC" onclick="DMU.flag('${type}',${id},'flagged',this)">★ Flag</button>
+    <button title="Ignore" onclick="DMU.flag('${type}',${id},'ignored',this)">✕ Ignore</button>
+  </span>`;
+}
+
 function itemCard(it) {
+  const f = flagState('parliamentary_item', it.id);
+  const flagged = f.flagged ? '<span class="new-badge" style="background:#c97a00">★ Flagged</span>' : '';
   const isNew = it.is_new ? '<span class="new-badge">New</span>' : '';
   const member = it.member_name ? ` · ${esc(it.member_name)}${it.party ? ` (${esc(it.party)})` : ''}` : '';
   return `<article class="card" data-id="${it.id}" data-type="parliamentary_item">
-    <div class="card-head">${badge(it.source)} <span class="date">${esc((it.date || '').slice(0, 10))}</span>${member} ${isNew}</div>
+    <div class="card-head">${badge(it.source)} <span class="date">${esc((it.date || '').slice(0, 10))}</span>${member} ${isNew} ${flagged}</div>
     <h3><a href="${esc(it.url || '#')}" target="_blank" rel="noopener">${esc(it.title || '(untitled)')}</a></h3>
     <p class="snippet">${esc((it.snippet || '').slice(0, 150))}</p>
     <div class="card-body">${matchSidebar(it.id, 'parliamentary_item')}</div>
     <div class="card-actions">
       <button onclick="DMU.openDraft(${it.id},'parliamentary_item')">Draft response</button>
       <button onclick="DMU.findExperts(${it.id},'parliamentary_item',this)">Find experts</button>
+      ${flagControls('parliamentary_item', it.id, f)}
     </div>
   </article>`;
 }
@@ -67,6 +81,7 @@ function committeeCard(q) {
     <div class="card-actions">
       <button onclick="DMU.openDraft(${q.id},'committee_inquiry','committee_submission')">Draft response</button>
       <button onclick="DMU.findExperts(${q.id},'committee_inquiry',this)">Find experts</button>
+      ${flagControls('committee_inquiry', q.id, flagState('committee_inquiry', q.id))}
     </div>
   </article>`;
 }
@@ -87,9 +102,12 @@ router.get('/', (req, res) => {
 
   // Parliamentary items + committee inquiries from last 7 days (or flagged new),
   // grouped by keyword group and interleaved by date.
+  const notIgnored = (type, tbl) => showAll ? '' :
+    `AND NOT EXISTS (SELECT 1 FROM item_flags f WHERE f.item_type='${type}' AND f.item_id=${tbl}.id AND f.ignored=1)`;
   const items = all(
     `SELECT * FROM parliamentary_items
-     WHERE date >= date('now','-7 days') OR is_new = 1`
+     WHERE (date >= date('now','-7 days') OR is_new = 1)
+       ${notIgnored('parliamentary_item', 'parliamentary_items')}`
   ).map((it) => ({ ...it, _kind: 'parliamentary', _sort: it.date || '' }));
 
   // High-signal items are gated by contextual relevance: hide low/none unless
@@ -101,7 +119,8 @@ router.get('/', (req, res) => {
     `SELECT * FROM committee_inquiries
      WHERE evidence_status = 'AcceptingEvidence'
        AND (COALESCE(date_opened, created_at) >= date('now','-7 days') OR is_new = 1)
-       ${relevanceFilter}`
+       ${relevanceFilter}
+       ${notIgnored('committee_inquiry', 'committee_inquiries')}`
   ).map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '' }));
 
   const groups = all('SELECT name FROM keyword_groups ORDER BY name');

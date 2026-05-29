@@ -36,6 +36,11 @@ inquiry), surfaced in the item cards and folded into the drafting prompt.
 Two-tier academic matching:
 * **Tier 1** — fast keyword scoring, runs automatically on every new item.
 * **Tier 2** — semantic matching via the Claude API ("Find experts"), cached 7 days.
+* **Feedback loop** — 👍/👎 on matches accumulate per academic + topic and nudge
+  future Tier-1 ranking.
+
+Triage: flag items for the VC, ignore (hides from the digest), and a global
+search box in the header across everything.
 
 Drafting panel (Claude API) generates: media quote, press response, briefing
 note, committee submission opening, or a personalised MP engagement email. Every

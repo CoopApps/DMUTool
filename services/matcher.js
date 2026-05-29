@@ -66,6 +66,14 @@ function matchItem(itemId, itemType) {
     }
   }
 
+  // Accumulated human feedback for this topic boosts/suppresses academics.
+  const fb = {};
+  if (item.keyword_group) {
+    for (const r of all('SELECT academic_id, votes FROM academic_feedback WHERE keyword_group = ?', [item.keyword_group])) {
+      fb[r.academic_id] = r.votes;
+    }
+  }
+
   const scored = [];
   for (const a of academics) {
     let pubTitles = '';
@@ -82,7 +90,8 @@ function matchItem(itemId, itemType) {
       countHits(a.profile_text, terms) * 3 +
       countHits(pubTitles, terms) * 2 +
       countHits(a.department, terms) * 1 +
-      countHits(courseTitles, terms) * 1;
+      countHits(courseTitles, terms) * 1 +
+      (fb[a.id] || 0) * 2;   // human feedback nudges ranking
 
     if (score > 0) scored.push({ academic_id: a.id, name: a.name, department: a.department, score });
   }
