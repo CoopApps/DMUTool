@@ -120,6 +120,32 @@ function seed() {
     ON CONFLICT(sdg, keyword_group) DO NOTHING`);
   for (const [s, g] of SDG_MAP) insSdg.run(s, g);
 
+  // University Alliance members (peers to monitor). name, short, domain, region, is_self
+  const UA_MEMBERS = [
+    ['De Montfort University', 'DMU', 'dmu.ac.uk', 'East Midlands', 1],
+    ['Bournemouth University', 'BU', 'bournemouth.ac.uk', 'South West', 0],
+    ['University of Westminster', 'Westminster', 'westminster.ac.uk', 'London', 0],
+    ['University of West London', 'UWL', 'uwl.ac.uk', 'London', 0],
+    ['Robert Gordon University', 'RGU', 'rgu.ac.uk', 'Scotland', 0],
+    ['University of Derby', 'Derby', 'derby.ac.uk', 'East Midlands', 0],
+    ['Middlesex University', 'Middlesex', 'mdx.ac.uk', 'London', 0],
+    ['Anglia Ruskin University', 'ARU', 'aru.ac.uk', 'East of England', 0],
+    ['Birmingham City University', 'BCU', 'bcu.ac.uk', 'West Midlands', 0],
+    ['Leeds Beckett University', 'Leeds Beckett', 'leedsbeckett.ac.uk', 'Yorkshire', 0],
+    ['University of Brighton', 'Brighton', 'brighton.ac.uk', 'South East', 0],
+    ['University of Greenwich', 'Greenwich', 'gre.ac.uk', 'London', 0],
+    ['Coventry University', 'Coventry', 'coventry.ac.uk', 'West Midlands', 0],
+    ['UWE Bristol', 'UWE', 'uwe.ac.uk', 'South West', 0],
+    ['Teesside University', 'Teesside', 'tees.ac.uk', 'North East', 0],
+    ['Kingston University', 'Kingston', 'kingston.ac.uk', 'London', 0],
+    ['Oxford Brookes University', 'Oxford Brookes', 'brookes.ac.uk', 'South East', 0],
+    ['University of Hertfordshire', 'Herts', 'herts.ac.uk', 'East of England', 0],
+    ['University of South Wales', 'USW', 'southwales.ac.uk', 'Wales', 0],
+  ];
+  const uaExists = db.prepare('SELECT id FROM ua_members WHERE name = ?');
+  const insUa = db.prepare('INSERT INTO ua_members (name, short, domain, region, is_self) VALUES (?,?,?,?,?)');
+  for (const m of UA_MEMBERS) { if (!uaExists.get(m[0])) insUa.run(...m); }
+
   try { require('./seed-thinktanks').seedThinkTanks(); } catch (e) { console.warn('think-tank seed skipped:', e.message); }
 
   console.log('Seed complete:');

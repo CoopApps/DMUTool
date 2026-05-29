@@ -370,6 +370,31 @@ CREATE TABLE IF NOT EXISTS task_queue (
   UNIQUE(kind, item_type, item_id)
 );
 
+-- ========================= University Alliance peers =========================
+-- Monitor fellow University Alliance members' public affairs activity
+-- (benchmarking — kept separate from DMU's own relevance pipeline).
+CREATE TABLE IF NOT EXISTS ua_members (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  name      TEXT UNIQUE,
+  short     TEXT,
+  domain    TEXT,
+  feed_url  TEXT,
+  region    TEXT,
+  is_self   INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS ua_activity (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  member     TEXT,
+  type       TEXT,          -- news | hansard | written
+  title      TEXT,
+  date       TEXT,
+  url        TEXT UNIQUE,
+  snippet    TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_uaact_member ON ua_activity(member, date);
+
 -- ========================= APPGs =========================
 -- All-Party Parliamentary Groups (scraped register — no API). Matched groups
 -- become an engagement route via their officer MPs.

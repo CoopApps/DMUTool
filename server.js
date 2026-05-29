@@ -26,6 +26,7 @@ app.use('/sector', require('./routes/sector'));
 app.use('/mps', require('./routes/mps'));
 app.use('/engagement', require('./routes/engagement').router);
 app.use('/appgs', require('./routes/appgs'));
+app.use('/alliance', require('./routes/alliance'));
 app.use('/academics', require('./routes/academics'));
 app.use('/drafts', require('./routes/drafts'));
 app.use('/submissions', require('./routes/submissions'));

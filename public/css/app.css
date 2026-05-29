@@ -25,6 +25,12 @@ a { color: var(--dmu); }
 .flagbar button.on { background: var(--amber); color: #fff; border-color: var(--amber); }
 .vote button { background: transparent; border: 0; cursor: pointer; font-size: 13px; padding: 0 2px; }
 .rag.green { color: var(--green); font-weight: 700; } .rag.grey { color: var(--grey); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 16px; text-decoration: none;
+  color: var(--text); background: #fff; font-size: 13px; }
+.chip.active { background: var(--dmu); color: #fff; border-color: var(--dmu); }
+.chip .n { background: #eef1f6; color: #445; border-radius: 9px; padding: 0 6px; font-size: 11px; margin-left: 3px; }
+.chip.active .n { background: rgba(255,255,255,.25); color: #fff; }
 .badge { background: var(--dmu-accent); color: #fff; border-radius: 10px; font-size: 11px;
   padding: 1px 6px; margin-left: 4px; }
 

@@ -25,6 +25,7 @@ Serves on `http://localhost:3000`.
 | Members tracker | `/mps` | Browse/search Commons MPs (from Access) **and current Lords** (Members API), filter by House; engagement log, recent contributions, voting record (Commons/Lords votes), declared interests. |
 | Engagement | `/engagement` | Follow-ups due, a relevance-ranked target list of MPs active on our topics we've never contacted (CSV export), and stale relationships to re-engage. |
 | APPGs | `/appgs` | All-Party Parliamentary Groups whose subject matches DMU topics, with officer MPs linked as an engagement route (scraped register — no API). |
+| UA peers | `/alliance` | Monitor fellow University Alliance members' public affairs activity — institutional news + their parliamentary footprint (Hansard/written questions). Benchmarking, kept separate from DMU's own relevance. |
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
 | Drafts | `/drafts` | History of every generated/edited draft with a status workflow (generated → edited → approved → sent), inline editing, and .docx export. |
 | Admin | `/admin` | Keyword groups, professional-body mappings, fetch log, DMU context, manual refresh. |

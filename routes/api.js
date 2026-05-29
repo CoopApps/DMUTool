@@ -215,6 +215,7 @@ const SOURCE_RUNNERS = {
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
   lordsRefresh: () => require('../services/lords').refreshLords(),
   ukri: () => require('../services/ukri').run(),
+  alliance: () => require('../services/alliance').run(),
   staffXml: () => require('../services/staffXml').run(),
   dmuEvents: () => require('../services/contensis').crawl({ mode: 'events-only' }),
   thinktanks: () => require('../services/thinktanks').run(),

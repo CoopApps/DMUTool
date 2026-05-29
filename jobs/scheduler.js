@@ -46,6 +46,7 @@ function start() {
   cron.schedule('0 9 * * *', safe('thinktanks', thinktanks.run), opt);   // daily adaptive sweep
   cron.schedule('30 7 * * *', safe('briefings', briefings.run), opt);    // Commons Library + POSTnotes
   cron.schedule('0 5 * * 1', safe('appgs', appgs.run), opt);             // weekly (register changes ~6-weekly)
+  cron.schedule('0 6 * * *', safe('alliance', () => require('../services/alliance').run()), opt); // UA peers, daily
   cron.schedule('45 7 * * *', safe('dmu-news', () => contensis.crawl({ mode: 'news-only' }).catch(()=>{})), opt);
 
   // Every 4 hours — What's On
