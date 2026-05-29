@@ -71,12 +71,23 @@ async function petitions() {
       const text = `${attr.action} ${attr.background || ''}`;
       const { groups } = matchText(text);
       if (!groups.length) continue;
-      if (insert({
+      const url = `https://petition.parliament.uk/petitions/${p.id}`;
+      // Record signature trajectory every run (even for known petitions).
+      run('INSERT INTO petition_signatures (petition_url, signatures) VALUES (?, ?)', [url, sig]);
+      const prev = get(`SELECT signatures FROM petition_signatures WHERE petition_url = ?
+        ORDER BY recorded_at DESC LIMIT 1 OFFSET 1`, [url]);
+      const delta = prev ? sig - prev.signatures : null;
+      const existing = get('SELECT id FROM external_items WHERE url = ?', [url]);
+      if (existing) {
+        // Keep the live count + trajectory fresh on the stored item.
+        run('UPDATE external_items SET meta_json = ? WHERE id = ?',
+          [JSON.stringify({ signatures: sig, state: attr.state, delta }), existing.id]);
+      } else if (insert({
         source_name: 'Petitions', source_type: 'petition',
         title: attr.action, date: attr.created_at,
-        url: `https://petition.parliament.uk/petitions/${p.id}`,
+        url,
         summary: snippet(attr.background),
-        meta: { signatures: sig, state: attr.state },
+        meta: { signatures: sig, state: attr.state, delta },
       })) created += 1;
     }
   } catch (e) { error = (error||'') + e.message; }

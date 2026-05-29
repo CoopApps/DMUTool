@@ -25,6 +25,7 @@ const jobs = [
   ['thinktanks', () => require('../services/thinktanks').run()],
   ['briefings', () => require('../services/briefings').run()],
   ['appgs', () => require('../services/appgs').run()],
+  ['ukri', () => require('../services/ukri').run()],
 ];
 
 async function main() {

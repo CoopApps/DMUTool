@@ -102,6 +102,20 @@ function seed() {
     setContext(key, value);
   }
 
+  // SDG -> keyword-group mapping (DMU is UN hub for SDG 11).
+  const SDG_MAP = [
+    ['SDG 3 (Good Health and Well-being)', 'Health and nursing'],
+    ['SDG 4 (Quality Education)', 'Higher education'],
+    ['SDG 9 (Industry, Innovation and Infrastructure)', 'AI and technology'],
+    ['SDG 9 (Industry, Innovation and Infrastructure)', 'Research funding'],
+    ['SDG 11 (Sustainable Cities and Communities)', 'Sustainable development'],
+    ['SDG 13 (Climate Action)', 'Sustainable development'],
+    ['SDG 16 (Peace, Justice and Strong Institutions)', 'Criminal justice'],
+  ];
+  const insSdg = db.prepare(`INSERT INTO sdg_keyword_map (sdg, keyword_group) VALUES (?,?)
+    ON CONFLICT(sdg, keyword_group) DO NOTHING`);
+  for (const [s, g] of SDG_MAP) insSdg.run(s, g);
+
   try { require('./seed-thinktanks').seedThinkTanks(); } catch (e) { console.warn('think-tank seed skipped:', e.message); }
 
   console.log('Seed complete:');

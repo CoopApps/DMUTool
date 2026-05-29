@@ -32,6 +32,9 @@ function init() {
   ensureColumn('academics', 'source', "TEXT DEFAULT 'contensis'");
   ensureColumn('academics', 'norm_name', 'TEXT');
 
+  // Research projects gain a keyword_groups tag (incl. SDG mapping) for drafting.
+  ensureColumn('research_projects', 'keyword_groups', 'TEXT');
+
   // People coverage: Commons (from Access) + Lords (from Members API).
   ensureColumn('mps', 'house', "TEXT DEFAULT 'Commons'");
   ensureColumn('mps', 'member_api_id', 'INTEGER');

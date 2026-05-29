@@ -134,15 +134,17 @@ function upsertResearch(e) {
   const title = field(e, 'title', 'name', 'projectTitle');
   const desc = textOf(field(e, 'description', 'summary', 'overview'));
   const existing = get('SELECT id FROM research_projects WHERE contensis_id = ?', [cid]);
+  const { matchText } = require('../lib/keywords');
+  const { groups } = matchText(`${title} ${desc}`);
   const params = [title, desc, (desc.match(/\b[A-Za-z]{5,}\b/g)||[]).slice(0,30).join(','), field(e,'url'),
-    JSON.stringify(e), new Date().toISOString()];
+    groups.join(','), JSON.stringify(e), new Date().toISOString()];
   if (existing) {
-    run(`UPDATE research_projects SET title=?, description=?, keywords=?, url=?, raw_json=?, last_scraped=? WHERE id=?`,
+    run(`UPDATE research_projects SET title=?, description=?, keywords=?, url=?, keyword_groups=?, raw_json=?, last_scraped=? WHERE id=?`,
       [...params, existing.id]);
     return existing.id;
   }
-  return run(`INSERT INTO research_projects (title, description, keywords, url, raw_json, last_scraped, contensis_id)
-    VALUES (?,?,?,?,?,?,?)`, [...params, cid]).lastInsertRowid;
+  return run(`INSERT INTO research_projects (title, description, keywords, url, keyword_groups, raw_json, last_scraped, contensis_id)
+    VALUES (?,?,?,?,?,?,?,?)`, [...params, cid]).lastInsertRowid;
 }
 
 function upsertEvent(e) {

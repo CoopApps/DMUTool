@@ -49,6 +49,19 @@ async function draft({ item_id, item_type, output_type, mp_id }) {
   const eventsBlock = (matches.events || [])
     .map((e) => `${e.title}${e.date ? ` (${(e.date || '').slice(0, 10)})` : ''}`).join('; ');
 
+  // Real funded research + research projects on the item's topic, for evidence.
+  const kg = get(`SELECT keyword_group FROM ${item_type === 'parliamentary_item' ? 'parliamentary_items'
+    : item_type === 'committee_inquiry' ? 'committee_inquiries' : item_type === 'consultation' ? 'consultations' : 'external_items'} WHERE id = ?`, [item_id]);
+  const group = kg && (kg.keyword_group || kg.keyword_groups);
+  const grants = group ? all(
+    `SELECT title, funder, value FROM grants WHERE keyword_groups LIKE ? ORDER BY value DESC LIMIT 3`,
+    [`%${group}%`]) : [];
+  const projects = group ? all(
+    `SELECT title FROM research_projects WHERE keyword_groups LIKE ? LIMIT 3`, [`%${group}%`]) : [];
+  const grantsBlock = grants.map((g) =>
+    `${g.title}${g.funder ? ` (${g.funder}${g.value ? `, £${Math.round(g.value).toLocaleString()}` : ''})` : ''}`).join('; ');
+  const projectsBlock = projects.map((p) => p.title).join('; ');
+
   let mpBlock = '';
   if (output_type === 'mp_email' && mp_id) {
     const mp = get('SELECT * FROM mps WHERE id = ?', [mp_id]);
@@ -71,6 +84,8 @@ async function draft({ item_id, item_type, output_type, mp_id }) {
     `Matched DMU academics:\n${academicsBlock || '(none matched)'}\n\n` +
     `Matched DMU courses: ${coursesBlock || '(none)'}\n` +
     `Relevant DMU events (context): ${eventsBlock || '(none)'}\n` +
+    `DMU funded research (UKRI): ${grantsBlock || '(none)'}\n` +
+    `DMU research projects: ${projectsBlock || '(none)'}\n` +
     mpBlock +
     `\nDraft ${instruction} in DMU's institutional voice — professional, direct, evidence-grounded, not promotional.`;
 

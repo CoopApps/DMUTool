@@ -163,6 +163,39 @@ CREATE TABLE IF NOT EXISTS event_matches (
   UNIQUE(item_id, item_type, event_id)
 );
 
+-- UKRI Gateway to Research — DMU's actual funded projects (for evidence in drafts).
+CREATE TABLE IF NOT EXISTS grants (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  gtr_id        TEXT UNIQUE,
+  title         TEXT,
+  abstract      TEXT,
+  funder        TEXT,
+  lead_org      TEXT,
+  value         REAL,
+  start_date    TEXT,
+  end_date      TEXT,
+  url           TEXT,
+  keyword_groups TEXT,
+  last_scraped  TEXT
+);
+
+-- SDG -> keyword-group mapping (DMU is UN hub for SDG 11).
+CREATE TABLE IF NOT EXISTS sdg_keyword_map (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  sdg           TEXT,
+  keyword_group TEXT,
+  UNIQUE(sdg, keyword_group)
+);
+
+-- Petition signature trajectory.
+CREATE TABLE IF NOT EXISTS petition_signatures (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  petition_url TEXT,
+  signatures  INTEGER,
+  recorded_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_petsig_url ON petition_signatures(petition_url, recorded_at);
+
 CREATE TABLE IF NOT EXISTS professional_bodies (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   name                TEXT,

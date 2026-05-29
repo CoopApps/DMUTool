@@ -34,7 +34,11 @@ router.get('/', (req, res) => {
     let meta = '';
     try {
       const m = it.meta_json ? JSON.parse(it.meta_json) : null;
-      if (m && m.signatures) meta = `<span class="pill">${m.signatures.toLocaleString()} signatures</span>`;
+      if (m && m.signatures) {
+        const trend = (m.delta != null && m.delta !== 0)
+          ? ` <span class="${m.delta > 0 ? 'rag green' : 'rag grey'}">${m.delta > 0 ? '▲' : '▼'} ${Math.abs(m.delta).toLocaleString()}</span>` : '';
+        meta = `<span class="pill">${m.signatures.toLocaleString()} signatures</span>${trend}`;
+      }
       if (m && m.stage) meta = `<span class="pill">${esc(m.stage)}</span>`;
     } catch { /* ignore */ }
     const groups = (it.keyword_groups || '').split(',').filter(Boolean)
