@@ -51,7 +51,7 @@ function itemCard(it) {
   const isNew = it.is_new ? '<span class="new-badge">New</span>' : '';
   const member = it.member_name ? ` · ${esc(it.member_name)}${it.party ? ` (${esc(it.party)})` : ''}` : '';
   return `<article class="card" data-id="${it.id}" data-type="parliamentary_item">
-    <div class="card-head">${badge(it.source)} <span class="date">${esc((it.date || '').slice(0, 10))}</span>${member} ${isNew} ${flagged}</div>
+    <div class="card-head">${badge(it.source)} <span class="date">${esc((it.date || '').slice(0, 10))}</span>${member} ${expertisePill('parliamentary_item', it.id)} ${isNew} ${flagged}</div>
     <h3><a href="${esc(it.url || '#')}" target="_blank" rel="noopener">${esc(it.title || '(untitled)')}</a></h3>
     <p class="snippet">${esc((it.snippet || '').slice(0, 150))}</p>
     <div class="card-body">${matchSidebar(it.id, 'parliamentary_item')}</div>
@@ -66,7 +66,18 @@ function itemCard(it) {
 function relevancePill(level) {
   if (!level || level === 'medium') return '';
   const cls = { high: 'green', low: 'grey', none: 'grey' }[level] || 'grey';
-  return `<span class="wdr ${cls}" title="contextual relevance">${esc(level)} relevance</span>`;
+  return `<span class="wdr ${cls}" title="overall DMU interest">${esc(level)} interest</span>`;
+}
+// Expertise is one facet of DMU's interest — shown distinctly so the officer
+// sees the makeup, even though it already feeds the overall interest score.
+function expertisePill(type, id) {
+  const s = matcher.expertiseSignal(id, type);
+  if (s.strong) return '<span class="wdr green" title="academic expertise facet">★ strong DMU expertise</span>';
+  if (s.count > 0) return `<span class="wdr amber" title="academic expertise facet">${s.count} expert match${s.count === 1 ? '' : 'es'}</span>`;
+  return '';
+}
+function interestOk(row) {
+  return !row.relevance_checked || ['high', 'medium'].includes(row.relevance_level);
 }
 
 function committeeCard(q) {
@@ -74,7 +85,7 @@ function committeeCard(q) {
   const wdr = q.working_days_remaining != null
     ? `<span class="date">${q.working_days_remaining} working days to deadline</span>` : '';
   return `<article class="card" data-id="${q.id}" data-type="committee_inquiry">
-    <div class="card-head">${badge('Committee')} <span class="date">${esc((q.date_opened || '').slice(0, 10))}</span> · ${esc(q.committee_name || '')} ${wdr} ${relevancePill(q.relevance_level)} ${isNew}</div>
+    <div class="card-head">${badge('Committee')} <span class="date">${esc((q.date_opened || '').slice(0, 10))}</span> · ${esc(q.committee_name || '')} ${wdr} ${relevancePill(q.relevance_level)} ${expertisePill('committee_inquiry', q.id)} ${isNew}</div>
     <h3><a href="${esc(q.url || '#')}" target="_blank" rel="noopener">${esc(q.inquiry_title || '(untitled)')}</a></h3>
     <p class="snippet">${esc((q.summary || '').slice(0, 150))}</p>
     <div class="card-body">${matchSidebar(q.id, 'committee_inquiry')}</div>
@@ -110,18 +121,16 @@ router.get('/', (req, res) => {
        ${notIgnored('parliamentary_item', 'parliamentary_items')}`
   ).map((it) => ({ ...it, _kind: 'parliamentary', _sort: it.date || '' }));
 
-  // High-signal items are gated by contextual relevance: hide low/none unless
-  // ?show=all. Unchecked items (relevance_checked=0) still show — they're in
-  // the background queue and shouldn't disappear while awaiting scoring.
-  const relevanceFilter = showAll ? '' :
-    `AND (relevance_checked = 0 OR relevance_level IN ('high','medium'))`;
+  // Gated on overall DMU interest (which already weighs institutional impact,
+  // sector/UA alignment AND academic expertise as co-equal facets). Unchecked
+  // items still show while awaiting background scoring; ?show=all reveals all.
   const inquiries = all(
     `SELECT * FROM committee_inquiries
      WHERE evidence_status = 'AcceptingEvidence'
        AND (COALESCE(date_opened, created_at) >= date('now','-7 days') OR is_new = 1)
-       ${relevanceFilter}
        ${notIgnored('committee_inquiry', 'committee_inquiries')}`
-  ).map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '' }));
+  ).filter((q) => showAll || interestOk(q))
+   .map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '' }));
 
   const groups = all('SELECT name FROM keyword_groups ORDER BY name');
 

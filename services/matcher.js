@@ -280,4 +280,18 @@ async function semanticMatch(itemId, itemType) {
   return { matches: getMatches(itemId, itemType).academics.filter((x) => x.match_type === 'semantic'), cached: false };
 }
 
-module.exports = { matchItem, matchCourses, matchEvents, getMatches, semanticMatch, matchProfessionalBodies };
+/**
+ * Expertise stream signal for an item — independent of institutional relevance.
+ * "strong" = a high keyword score (substantive overlap) or any semantic match.
+ */
+const STRONG_EXPERTISE = parseInt(process.env.STRONG_EXPERTISE || '6', 10);
+function expertiseSignal(itemId, itemType) {
+  const r = get(
+    `SELECT MAX(score) ms, SUM(CASE WHEN match_type='semantic' THEN 1 ELSE 0 END) sem, COUNT(*) c
+     FROM academic_matches WHERE item_id=? AND item_type=?`, [itemId, itemType]);
+  const top = r && r.ms != null ? r.ms : 0;
+  const strong = !!r && (top >= STRONG_EXPERTISE || (r.sem || 0) > 0);
+  return { strong, count: r ? (r.c || 0) : 0, top };
+}
+
+module.exports = { matchItem, matchCourses, matchEvents, getMatches, semanticMatch, matchProfessionalBodies, expertiseSignal };

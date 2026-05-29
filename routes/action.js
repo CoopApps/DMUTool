@@ -15,6 +15,9 @@ const { workingDaysUntil, sittingDaysBefore } = require('../lib/parliament');
 
 const HORIZON = 15; // working days
 const RELEVANT = `(relevance_checked = 0 OR relevance_level IN ('high','medium'))`;
+// Gated on overall DMU interest (institutional + sector/UA + expertise, weighed
+// together by the relevance gate).
+const interestOk = (r) => !r.relevance_checked || ['high', 'medium'].includes(r.relevance_level);
 
 function ragClass(wdr) {
   if (wdr == null) return 'grey';
@@ -27,17 +30,19 @@ function ragClass(wdr) {
 router.get('/', async (req, res) => {
   ageNewFlags();
 
-  // 1) Closing deadlines — committees + consultations, relevant, within horizon.
+  // 1) Closing deadlines within horizon — gated on overall DMU interest
+  //    (institutional impact + sector/UA + expertise, weighed together).
   const inquiries = all(
-    `SELECT id, committee_name AS org, inquiry_title AS title, working_days_remaining AS wdr, url, 'committee_inquiry' AS kind
-     FROM committee_inquiries WHERE evidence_status='AcceptingEvidence' AND ${RELEVANT}
+    `SELECT id, committee_name AS org, inquiry_title AS title, working_days_remaining AS wdr, url,
+            relevance_checked, relevance_level, 'committee_inquiry' AS kind
+     FROM committee_inquiries WHERE evidence_status='AcceptingEvidence'
        AND working_days_remaining IS NOT NULL AND working_days_remaining BETWEEN 0 AND ${HORIZON}`
-  );
+  ).filter(interestOk);
   const consultations = all(
-    `SELECT id, organisation AS org, title, working_days_remaining AS wdr, url, 'consultation' AS kind
-     FROM consultations WHERE ${RELEVANT}
-       AND working_days_remaining IS NOT NULL AND working_days_remaining BETWEEN 0 AND ${HORIZON}`
-  );
+    `SELECT id, organisation AS org, title, working_days_remaining AS wdr, url,
+            relevance_checked, relevance_level, 'consultation' AS kind
+     FROM consultations WHERE working_days_remaining IS NOT NULL AND working_days_remaining BETWEEN 0 AND ${HORIZON}`
+  ).filter(interestOk);
   const deadlines = [...inquiries, ...consultations].sort((a, b) => a.wdr - b.wdr);
 
   const deadlineRows = deadlines.map((d) => `<tr>
