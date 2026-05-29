@@ -15,6 +15,8 @@ const feeds = require('../services/feeds');
 const secondary = require('../services/secondary');
 const contensis = require('../services/contensis');
 const guardian = require('../services/guardian');
+const govuk = require('../services/govuk');
+const email = require('../services/email');
 
 const TZ = process.env.TZ || 'Europe/London';
 
@@ -41,8 +43,12 @@ function start() {
   // Every 4 hours — What's On
   cron.schedule('0 */4 * * *', safe('whatson', whatson.run), opt);
 
-  // Every 6 hours — Committees
+  // Every 6 hours — Committees + GOV.UK consultations
   cron.schedule('0 */6 * * *', safe('committees', committees.run), opt);
+  cron.schedule('30 */6 * * *', safe('govuk', govuk.run), opt);
+
+  // Daily 07:50 — morning email digest (after the 07:00–07:40 fetches)
+  cron.schedule('50 7 * * *', safe('email-digest', email.sendDigest), opt);
 
   // Weekly Monday — oral questions rota, bills, legislation
   cron.schedule('0 6 * * 1', safe('oralQuestions', secondary.oralQuestions), opt);

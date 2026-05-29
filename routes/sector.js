@@ -9,6 +9,7 @@ const TABS = [
   ['he_news', 'HE news'],
   ['professional_body', 'Professional bodies'],
   ['outlet', 'Outlets'],
+  ['govuk', 'Government'],
   ['legislation', 'Legislation'],
   ['bill', 'Bills'],
   ['edm', 'EDMs'],

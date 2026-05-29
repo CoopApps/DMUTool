@@ -19,6 +19,7 @@ Serves on `http://localhost:3000`.
 | Daily digest | `/digest` | Parliamentary items grouped by topic, with matched academics, matched courses, and Draft / Find-experts actions. New-inquiry banners. |
 | Parliamentary diary | `/diary` | Week-at-a-glance calendar from the What's On API, recess-aware, oral-question deadline countdowns. |
 | Committee tracker | `/committees` | Open inquiries sorted by deadline, RAG-coded working days, matched academics, submission tracker. |
+| Consultations | `/consultations` | Open government consultations (GOV.UK Search API), RAG-coded deadlines, matched academics, response tracker, draft button. |
 | Sector watch | `/sector` | HE news, professional bodies, outlets, legislation, bills, EDMs, petitions. |
 | MP tracker | `/mps` | Browse/search 622 MPs, engagement log, recent contributions, voting record, declared interests. |
 | Academic finder | `/academics` | FTS5 full-text search across profiles, publications, departments. |
@@ -56,8 +57,14 @@ cp .env.example .env      # then fill in the values (see below)
 | `DB_PATH` | SQLite file path (default `db/dmu.sqlite`). |
 | `ACCESS_DB_PATH` | Path to the Access `.accdb` backup for migration. |
 | `CONTENSIS_ROOT_URL` / `CONTENSIS_ACCESS_TOKEN` / `CONTENSIS_PROJECT_ID` | DMU Contensis delivery API credentials. |
+| `GUARDIAN_API_KEY` | Guardian Open Platform key (optional sector source). |
+| `TWFY_API_KEY` | TheyWorkForYou key (optional MP intelligence). |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `DIGEST_TO` / `DIGEST_FROM` | Morning email digest (optional). |
 | `ANTHROPIC_API_KEY` | Claude API key — required for Find-experts and drafting. |
 | `CLAUDE_MODEL` | Claude model id (default `claude-sonnet-4-20250514`). |
+
+All optional keys skip gracefully when unset (logged in Admin → Fetch log) — the
+app runs fine without them.
 
 ## Running the migration (first-time setup)
 
@@ -98,9 +105,10 @@ Contensis crawl in the background. Scheduled jobs start automatically unless
 | Source | Schedule |
 |--------|----------|
 | Hansard, Written Questions | daily 07:00 |
-| Petitions, EDMs, HE/sector feeds | daily 07:00–07:30 |
+| Petitions, EDMs, HE/sector feeds, Guardian API | daily 07:00–07:40 |
+| Morning email digest | daily 07:50 |
 | What's On (diary) | every 4 hours |
-| Committees | every 6 hours |
+| Committees, GOV.UK consultations | every 6 hours |
 | Oral questions rota, Bills, Legislation | weekly Monday |
 | Contensis full crawl (staff/courses/research/SDG) | monthly, 1st |
 
@@ -115,9 +123,15 @@ per-source "Run now" button).
 * **DMU**: Contensis delivery API (staff, news, courses, research, SDG), the
   academic-staff XML listing, and individual profile-page scraping for
   publication lists.
-* **Sector**: THE, HEPI, OfS, UUK, UKRI, Wonkhe, SRHE, plus professional bodies
-  and sector outlets (RSS where available, otherwise scraped with a 2s crawl
-  delay and Google News RSS fallback).
+* **Government**: GOV.UK Search API (open consultations → Consultations tracker;
+  announcements/policy papers → Sector watch "Government" tab).
+* **Sector**: THE, HEPI, OfS, UUK, UKRI, Wonkhe, SRHE, the Guardian Open
+  Platform (keyword-queried), plus professional bodies and sector outlets (RSS
+  where available, otherwise scraped with a 2s crawl delay and Google News RSS
+  fallback).
+* **MP intelligence**: Parliament Members API (portrait + active-status
+  reconciliation, also available as the `mpRefresh` manual source in Admin) and
+  TheyWorkForYou (voting summaries / positions) on the MP profile.
 
 ## Notes
 

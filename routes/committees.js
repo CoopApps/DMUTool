@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { all, get, run } = require('../db/database');
+const { all, get, run, ageNewFlags } = require('../db/database');
 const { layout, esc } = require('../lib/render');
 const matcher = require('../services/matcher');
 
@@ -48,6 +48,7 @@ function card(q) {
 }
 
 router.get('/', (req, res) => {
+  ageNewFlags();
   const filter = req.query.filter || 'all'; // all | matched
   let sql = `SELECT * FROM committee_inquiries WHERE evidence_status = 'AcceptingEvidence'`;
   if (filter === 'matched') sql += ` AND keyword_group IS NOT NULL`;

@@ -71,6 +71,26 @@ CREATE TABLE IF NOT EXISTS external_items (
   created_at    TEXT DEFAULT (datetime('now'))
 );
 
+-- Government consultations (GOV.UK Search API) — response opportunities with
+-- deadlines, tracked much like committee inquiries.
+CREATE TABLE IF NOT EXISTS consultations (
+  id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+  external_id            TEXT UNIQUE,
+  title                  TEXT,
+  organisation           TEXT,
+  summary                TEXT,
+  url                    TEXT,
+  opened                 TEXT,
+  deadline               TEXT,
+  working_days_remaining INTEGER,
+  keyword_group          TEXT,
+  is_new                 INTEGER DEFAULT 0,
+  submitted              INTEGER DEFAULT 0,
+  contributors           TEXT,
+  submission_url         TEXT,
+  created_at             TEXT DEFAULT (datetime('now'))
+);
+
 -- ========================= DMU tables =========================
 
 CREATE TABLE IF NOT EXISTS academics (

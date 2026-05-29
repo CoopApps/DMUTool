@@ -76,4 +76,19 @@ function setContext(key, value) {
   );
 }
 
-module.exports = { db, init, get, all, run, logFetch, getContext, setContext, DB_PATH };
+/**
+ * Expire the "New" flag on items older than 24 hours. Parliamentary items and
+ * diary events age on created_at; committee inquiries and consultations age on
+ * when they opened (the brief defines "new" = opened in the last 24h).
+ * Cheap, idempotent — safe to call on each relevant page load.
+ */
+function ageNewFlags() {
+  run(`UPDATE parliamentary_items SET is_new = 0 WHERE is_new = 1 AND created_at < datetime('now','-1 day')`);
+  run(`UPDATE diary_events SET is_new = 0 WHERE is_new = 1 AND created_at < datetime('now','-1 day')`);
+  run(`UPDATE committee_inquiries SET is_new = 0 WHERE is_new = 1 AND
+       COALESCE(date_opened, created_at) < datetime('now','-1 day')`);
+  run(`UPDATE consultations SET is_new = 0 WHERE is_new = 1 AND
+       COALESCE(opened, created_at) < datetime('now','-1 day')`);
+}
+
+module.exports = { db, init, get, all, run, logFetch, getContext, setContext, ageNewFlags, DB_PATH };

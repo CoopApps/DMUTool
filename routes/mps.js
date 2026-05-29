@@ -5,6 +5,7 @@ const router = express.Router();
 const { all, get } = require('../db/database');
 const { layout, esc } = require('../lib/render');
 const mpProfile = require('../services/mpProfile');
+const twfy = require('../services/theyworkforyou');
 
 router.get('/', (req, res) => {
   const { party = '', active = '', q = '' } = req.query;
@@ -53,9 +54,16 @@ router.get('/:id', async (req, res) => {
     [`%${mp.last_name}%`]
   );
 
-  let votes = [], interests = [];
+  // Enrich photo/active status from the live Members API (cached 30 days),
+  // then re-read the row so the freshly written photo_url shows immediately.
+  try { await mpProfile.enrichFromMembers(mp); } catch { /* ignore */ }
+  const fresh = get('SELECT * FROM mps WHERE id = ?', [mp.id]);
+  if (fresh) Object.assign(mp, fresh);
+
+  let votes = [], interests = [], twfyProfile = null;
   try { votes = await mpProfile.getVotingRecord(mp); } catch { /* ignore */ }
   try { interests = await mpProfile.getInterests(mp); } catch { /* ignore */ }
+  try { twfyProfile = await twfy.getProfile(mp); } catch { /* ignore */ }
 
   const logRows = log.map((l) => `<li><b>${esc((l.date||'').slice(0,10))}</b> ${esc(l.type||'')} — ${esc(l.description||'')}
     ${l.notes ? `<br><span class="why">${esc(l.notes)}</span>` : ''}${l.followup ? ' <span class="kw-pill">follow up</span>' : ''}</li>`).join('');
@@ -86,7 +94,10 @@ router.get('/:id', async (req, res) => {
           </form>
         </section>
         <section><h2>Recent contributions (90 days)</h2><ul>${contribRows || '<li class="empty">None matched.</li>'}</ul></section>
-        <section><h2>Voting record</h2><ul>${voteRows || '<li class="empty">No cached votes.</li>'}</ul></section>
+        <section><h2>Voting record</h2><ul>${voteRows || '<li class="empty">No cached votes.</li>'}</ul>
+          ${twfyProfile ? `<p>${twfyProfile.office && twfyProfile.office.length ? esc(twfyProfile.office.join('; ')) + '<br>' : ''}
+            ${twfyProfile.votes_url ? `<a href="${esc(twfyProfile.votes_url)}" target="_blank">Voting summary &amp; positions (TheyWorkForYou) →</a>` : ''}</p>` : ''}
+        </section>
         <section><h2>Declared interests</h2><ul>${interestRows || '<li class="empty">None cached.</li>'}</ul></section>
       </div>
     </div>`;

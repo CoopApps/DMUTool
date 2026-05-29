@@ -21,6 +21,7 @@ const jobs = [
   ['edms', () => require('../services/secondary').edms()],
   ['feeds', () => require('../services/feeds').run()],
   ['guardian', () => require('../services/guardian').run()],
+  ['govuk', () => require('../services/govuk').run()],
 ];
 
 async function main() {

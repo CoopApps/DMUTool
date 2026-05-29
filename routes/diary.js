@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { all, setContext } = require('../db/database');
+const { all, setContext, ageNewFlags } = require('../db/database');
 const { layout, esc } = require('../lib/render');
 const { getRecesses, sittingDaysBefore, workingDaysUntil } = require('../lib/parliament');
 
@@ -15,6 +15,7 @@ function startOfWeek(d) {
 }
 
 router.get('/', async (req, res) => {
+  ageNewFlags();
   // Clear the "new events" badge on visit.
   setContext('new_events_count', '0');
 

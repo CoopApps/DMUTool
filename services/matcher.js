@@ -14,6 +14,7 @@ const { loadGroups } = require('../lib/keywords');
 const ITEM_QUERIES = {
   parliamentary_item: 'SELECT id, title, snippet, full_text, keyword_group FROM parliamentary_items WHERE id = ?',
   committee_inquiry: 'SELECT id, inquiry_title AS title, summary AS snippet, summary AS full_text, keyword_group FROM committee_inquiries WHERE id = ?',
+  consultation: 'SELECT id, title, summary AS snippet, summary AS full_text, keyword_group FROM consultations WHERE id = ?',
   external_item: 'SELECT id, title, summary AS snippet, summary AS full_text, keyword_groups AS keyword_group FROM external_items WHERE id = ?',
 };
 
@@ -53,6 +54,18 @@ function matchItem(itemId, itemType) {
   const terms = [...new Set([...words, ...keywords])];
 
   const academics = all('SELECT id, name, department, profile_text, publications_json FROM academics');
+
+  // Preload course titles grouped by school/department so we can credit
+  // "course titles in their school" (weight 1) per the brief.
+  const deptCourses = {};
+  for (const c of all('SELECT title, school, department FROM courses')) {
+    for (const key of [c.school, c.department]) {
+      if (!key) continue;
+      const k = key.toLowerCase().trim();
+      (deptCourses[k] = deptCourses[k] || []).push(c.title || '');
+    }
+  }
+
   const scored = [];
   for (const a of academics) {
     let pubTitles = '';
@@ -63,10 +76,13 @@ function matchItem(itemId, itemType) {
         : '';
     } catch { /* ignore malformed json */ }
 
+    const courseTitles = (deptCourses[(a.department || '').toLowerCase().trim()] || []).join(' ');
+
     const score =
       countHits(a.profile_text, terms) * 3 +
       countHits(pubTitles, terms) * 2 +
-      countHits(a.department, terms) * 1;
+      countHits(a.department, terms) * 1 +
+      countHits(courseTitles, terms) * 1;
 
     if (score > 0) scored.push({ academic_id: a.id, name: a.name, department: a.department, score });
   }

@@ -20,6 +20,7 @@ const OUTPUT_INSTRUCTIONS = {
 const ITEM_QUERIES = {
   parliamentary_item: 'SELECT id, title, full_text, member_name FROM parliamentary_items WHERE id = ?',
   committee_inquiry: 'SELECT id, inquiry_title AS title, summary AS full_text FROM committee_inquiries WHERE id = ?',
+  consultation: 'SELECT id, title, summary AS full_text FROM consultations WHERE id = ?',
   external_item: 'SELECT id, title, summary AS full_text FROM external_items WHERE id = ?',
 };
 

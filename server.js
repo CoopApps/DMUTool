@@ -20,6 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/digest', require('./routes/digest'));
 app.use('/diary', require('./routes/diary'));
 app.use('/committees', require('./routes/committees'));
+app.use('/consultations', require('./routes/consultations'));
 app.use('/sector', require('./routes/sector'));
 app.use('/mps', require('./routes/mps'));
 app.use('/academics', require('./routes/academics'));

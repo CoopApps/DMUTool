@@ -103,6 +103,8 @@
 
   function saveSubmission(ev, id) { ev.preventDefault();
     return handle(postJSON(`/api/committees/${id}/submission`, formData(ev.target))); }
+  function saveConsultation(ev, id) { ev.preventDefault();
+    return handle(postJSON(`/api/consultations/${id}/submission`, formData(ev.target))); }
   function logContact(ev, id) { ev.preventDefault();
     return handle(postJSON(`/api/mps/${id}/log`, formData(ev.target)).then(() => location.reload())); }
   function addGroup(ev) { ev.preventDefault();
@@ -148,5 +150,6 @@
   document.addEventListener('input', (e) => { if (e.target.id === 'draft-text') updateCount(); });
 
   window.DMU = { openDraft, closeDraft, generateDraft, copyDraft, findExperts, saveSubmission,
-    logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext, addContext, runSource, quickExpert };
+    saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
+    addContext, runSource, quickExpert };
 })();

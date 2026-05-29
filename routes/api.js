@@ -41,6 +41,14 @@ router.post('/committees/:id/submission', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Consultation response tracker -----------------------------------------
+router.post('/consultations/:id/submission', (req, res) => {
+  const { submitted, contributors, submission_url } = req.body;
+  run(`UPDATE consultations SET submitted=?, contributors=?, submission_url=? WHERE id=?`,
+    [submitted ? 1 : 0, contributors || null, submission_url || null, req.params.id]);
+  res.json({ ok: true });
+});
+
 // ---- MP contact logging ----------------------------------------------------
 router.post('/mps/:id/log', (req, res) => {
   const { date, type, description, notes, followup } = req.body;
@@ -102,6 +110,9 @@ const SOURCE_RUNNERS = {
   whatson: () => require('../services/whatson').run(),
   feeds: () => require('../services/feeds').run(),
   guardian: () => require('../services/guardian').run(),
+  govuk: () => require('../services/govuk').run(),
+  email: () => require('../services/email').sendDigest(),
+  mpRefresh: () => require('../services/mpProfile').refreshAll(),
   bills: () => require('../services/secondary').bills(),
   petitions: () => require('../services/secondary').petitions(),
   legislation: () => require('../services/secondary').legislation(),
