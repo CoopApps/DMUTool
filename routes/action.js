@@ -75,14 +75,18 @@ router.get('/', async (req, res) => {
   }
 
   // 3) New since 24h (relevant).
-  const newInq = all(`SELECT COUNT(*) c FROM committee_inquiries WHERE is_new=1 AND ${RELEVANT}`).c;
-  const newCons = all(`SELECT COUNT(*) c FROM consultations WHERE is_new=1 AND ${RELEVANT}`).c;
-  const newParl = all(`SELECT COUNT(*) c FROM parliamentary_items WHERE is_new=1`).c;
-  const newTT = all(`SELECT COUNT(*) c FROM external_items WHERE source_type='think_tank' AND created_at >= datetime('now','-1 day') AND relevance_level IN ('high','medium')`).c;
+  const newInq = get(`SELECT COUNT(*) c FROM committee_inquiries WHERE is_new=1 AND ${RELEVANT}`).c;
+  const newCons = get(`SELECT COUNT(*) c FROM consultations WHERE is_new=1 AND ${RELEVANT}`).c;
+  const newParl = get(`SELECT COUNT(*) c FROM parliamentary_items WHERE is_new=1`).c;
+  const newTT = get(`SELECT COUNT(*) c FROM external_items WHERE source_type='think_tank' AND created_at >= datetime('now','-1 day') AND relevance_level IN ('high','medium')`).c;
 
   // 4) Follow-ups due.
-  const fuDue = all(`SELECT COUNT(*) c FROM engagement_log WHERE followup=1`).c;
-  const fuOverdue = all(`SELECT COUNT(*) c FROM engagement_log WHERE followup=1 AND date < date('now','-14 days')`).c;
+  const fuDue = get(`SELECT COUNT(*) c FROM engagement_log WHERE followup=1`).c;
+  const fuOverdue = get(`SELECT COUNT(*) c FROM engagement_log WHERE followup=1 AND date < date('now','-14 days')`).c;
+
+  // 5) University Alliance peer activity this week.
+  const peerItems = get(`SELECT COUNT(*) c FROM ua_activity WHERE date >= date('now','-7 days')`).c;
+  const peerActive = get(`SELECT COUNT(DISTINCT member) c FROM ua_activity WHERE date >= date('now','-7 days')`).c;
 
   const stat = (n, label, href) => `<a class="stat" href="${href}"><span class="num">${n}</span>${esc(label)}</a>`;
 
@@ -98,6 +102,7 @@ router.get('/', async (req, res) => {
       ${stat(newCons, 'new consultations', '/consultations')}
       ${stat(newTT, 'new think-tank reports', '/sector?tab=think_tank')}
       ${stat(fuDue, `follow-ups due${fuOverdue ? ` (${fuOverdue} overdue)` : ''}`, '/engagement')}
+      ${stat(peerItems, `UA peer items${peerActive ? ` (${peerActive} peers)` : ''}`, '/alliance')}
     </div>
 
     <div id="briefing-out" class="briefing" hidden>
