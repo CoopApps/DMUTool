@@ -217,6 +217,7 @@ const SOURCE_RUNNERS = {
   commonsRefresh: () => require('../services/lords').refreshCommons(),
   ukri: () => require('../services/ukri').run(),
   alliance: () => require('../services/alliance').run(),
+  dmuSite: () => require('../services/dmuSite').run(),
   staffXml: () => require('../services/staffXml').run(),
   dmuEvents: () => require('../services/contensis').crawl({ mode: 'events-only' }),
   thinktanks: () => require('../services/thinktanks').run(),

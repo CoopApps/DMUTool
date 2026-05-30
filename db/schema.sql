@@ -370,6 +370,19 @@ CREATE TABLE IF NOT EXISTS task_queue (
   UNIQUE(kind, item_type, item_id)
 );
 
+-- General DMU website content of policy/public-affairs interest (SDG,
+-- engagement, policy pages) scraped from the public site (Contensis API blocked).
+CREATE TABLE IF NOT EXISTS dmu_content (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  url           TEXT UNIQUE,
+  section       TEXT,        -- course | research | sdg | news | event | engagement | other
+  title         TEXT,
+  summary       TEXT,
+  body          TEXT,
+  keyword_groups TEXT,
+  last_scraped  TEXT
+);
+
 -- ========================= University Alliance peers =========================
 -- Monitor fellow University Alliance members' public affairs activity
 -- (benchmarking — kept separate from DMU's own relevance pipeline).
