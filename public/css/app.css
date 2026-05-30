@@ -31,6 +31,8 @@ a { color: var(--dmu); }
 .chip.active { background: var(--dmu); color: #fff; border-color: var(--dmu); }
 .chip .n { background: #eef1f6; color: #445; border-radius: 9px; padding: 0 6px; font-size: 11px; margin-left: 3px; }
 .chip.active .n { background: rgba(255,255,255,.25); color: #fff; }
+.profile-text { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px; white-space: pre-wrap; line-height: 1.5; }
+.pubs li { margin-bottom: 6px; font-size: 14px; }
 .badge { background: var(--dmu-accent); color: #fff; border-radius: 10px; font-size: 11px;
   padding: 1px 6px; margin-left: 4px; }
 

@@ -87,17 +87,20 @@ async function crossReferenceXml() {
   if (!ok) return { fetched: 0, created: 0, error: `staff XML feed -> ${status}` };
 
   const people = await parseFeed(text);
-  const existing = existingNormNames();
+  // De-duplicate on the unique profile URL (each person has one), not on name —
+  // distinct people can share a normalised name. Still let live Contensis data win.
+  const haveUrls = new Set(all(`SELECT profile_url FROM academics WHERE profile_url IS NOT NULL AND profile_url != ''`).map((r) => r.profile_url));
+  const contensisNames = new Set(all(`SELECT norm_name FROM academics WHERE source='contensis' AND norm_name IS NOT NULL AND norm_name != ''`).map((r) => r.norm_name));
   let created = 0;
   const ins = db.prepare(`INSERT INTO academics (name, title, department, faculty, profile_url, profile_text, norm_name, source)
     VALUES (?,?,?,?,?,?,?, 'xml')`);
   const tx = db.transaction(() => {
     for (const p of people) {
+      if (!p.url || haveUrls.has(p.url)) continue;          // already have this exact person
       const nn = normName(p.name);
-      if (!nn || existing.has(nn)) continue;   // already known from Contensis
-      // faculty doubles as a weak department signal until profile pages are scraped.
+      if (nn && contensisNames.has(nn)) continue;            // live Contensis takes precedence
       ins.run(p.name, p.title, p.faculty, p.faculty, p.url, p.summary || null, nn);
-      existing.add(nn);
+      haveUrls.add(p.url);
       created += 1;
     }
   });
