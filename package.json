@@ -11,7 +11,8 @@
     "fetch-all": "node scripts/fetch-all.js",
     "seed": "node db/seed.js",
     "demo": "node scripts/seed-demo.js",
-    "rematch": "node scripts/rematch.js"
+    "rematch": "node scripts/rematch.js",
+    "embed": "node scripts/embed.js"
   },
   "license": "MIT",
   "dependencies": {

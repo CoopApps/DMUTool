@@ -25,11 +25,11 @@ const TABLES = {
 
 const LEVEL_SCORE = { high: 1, medium: 0.66, low: 0.33, none: 0 };
 
-/** Enqueue an item for background relevance scoring (idempotent). */
-function enqueue(itemType, itemId, priority = 5) {
+/** Enqueue a background task (idempotent). kind: 'relevance' | 'semantic'. */
+function enqueue(itemType, itemId, priority = 5, kind = 'relevance') {
   if (!TABLES[itemType]) return;
-  run(`INSERT INTO task_queue (kind, item_type, item_id, priority) VALUES ('relevance', ?, ?, ?)
-       ON CONFLICT(kind, item_type, item_id) DO NOTHING`, [itemType, itemId, priority]);
+  run(`INSERT INTO task_queue (kind, item_type, item_id, priority) VALUES (?, ?, ?, ?)
+       ON CONFLICT(kind, item_type, item_id) DO NOTHING`, [kind, itemType, itemId, priority]);
 }
 
 function dmuExpertise() {
@@ -94,6 +94,9 @@ async function scoreItem(itemType, itemId) {
   const rationale = (angles.length ? `[${angles.join(' + ')}] ` : '') + (parsed.rationale || '');
   run(`UPDATE ${map.table} SET relevance_level=?, relevance_score=?, relevance_rationale=?, relevance_checked=1 WHERE id=?`,
     [level, score, rationale || null, itemId]);
+
+  // Relevant enough to be worth a deeper conceptual expert match (Claude).
+  if (level === 'high' || level === 'medium') enqueue(itemType, itemId, 6, 'semantic');
   return { level, score, rationale };
 }
 

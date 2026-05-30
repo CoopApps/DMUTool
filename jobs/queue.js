@@ -21,6 +21,8 @@ let draining = false;
 
 const HANDLERS = {
   relevance: (t) => relevance.scoreItem(t.item_type, t.item_id),
+  // Conceptual expert matching via Claude, run in the background for relevant items.
+  semantic: (t) => require('../services/matcher').semanticMatch(t.item_id, t.item_type),
 };
 
 async function drainOnce() {
@@ -33,10 +35,10 @@ async function drainOnce() {
     );
     for (const t of tasks) {
       // If a task needs Claude but it isn't configured, degrade gracefully.
-      if (t.kind === 'relevance' && !claude.isConfigured()) {
-        relevance.markUnscored(t.item_type, t.item_id);
+      if ((t.kind === 'relevance' || t.kind === 'semantic') && !claude.isConfigured()) {
+        if (t.kind === 'relevance') relevance.markUnscored(t.item_type, t.item_id);
         run(`UPDATE task_queue SET status='done', processed_at=datetime('now'),
-             error='claude not configured — marked unscored' WHERE id=?`, [t.id]);
+             error='claude not configured — skipped' WHERE id=?`, [t.id]);
         continue;
       }
       try {

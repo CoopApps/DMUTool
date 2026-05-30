@@ -151,14 +151,26 @@ function matchEvents(itemId, itemType, terms) {
 
 /** Fetch stored matches (academics + courses + events) joined to their records. */
 function getMatches(itemId, itemType, { limit = 5 } = {}) {
-  const academics = all(
+  // Pull all match rows (keyword / embedding / semantic) then dedupe per
+  // academic, preferring the "deep" methods (embedding/semantic) over keyword.
+  const PRIORITY = { semantic: 3, embedding: 2, keyword: 1 };
+  const rawRows = all(
     `SELECT am.score, am.match_type, am.confidence, am.explanation,
             a.id, a.name, a.title, a.department, a.email, a.profile_url, a.profile_text
      FROM academic_matches am JOIN academics a ON a.id = am.academic_id
-     WHERE am.item_id=? AND am.item_type=?
-     ORDER BY (am.match_type='semantic') DESC, am.score DESC LIMIT ?`,
-    [itemId, itemType, limit]
+     WHERE am.item_id=? AND am.item_type=?`,
+    [itemId, itemType]
   );
+  const bestByAcademic = new Map();
+  for (const r of rawRows) {
+    const cur = bestByAcademic.get(r.id);
+    const better = !cur || (PRIORITY[r.match_type] || 0) > (PRIORITY[cur.match_type] || 0)
+      || ((PRIORITY[r.match_type] || 0) === (PRIORITY[cur.match_type] || 0) && r.score > cur.score);
+    if (better) bestByAcademic.set(r.id, r);
+  }
+  const academics = [...bestByAcademic.values()]
+    .sort((x, y) => ((PRIORITY[y.match_type] || 0) - (PRIORITY[x.match_type] || 0)) || (y.score - x.score))
+    .slice(0, limit);
   const courses = all(
     `SELECT cm.score, c.id, c.title, c.award, c.url, c.department
      FROM course_matches cm JOIN courses c ON c.id = cm.course_id
