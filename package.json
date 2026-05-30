@@ -10,7 +10,8 @@
     "crawl": "node scripts/crawl-contensis.js",
     "fetch-all": "node scripts/fetch-all.js",
     "seed": "node db/seed.js",
-    "demo": "node scripts/seed-demo.js"
+    "demo": "node scripts/seed-demo.js",
+    "rematch": "node scripts/rematch.js"
   },
   "license": "MIT",
   "dependencies": {
