@@ -140,9 +140,11 @@ async function run_({ sections = DEFAULT_SECTIONS, limit = Infinity } = {}) {
   try {
     const urls = await sitemapUrls();
     const todo = urls.filter((u) => sections.includes(categorise(u)));
+    console.log(`Scraping ${Math.min(todo.length, limit === Infinity ? todo.length : limit)} pages (${sections.join(', ')})…`);
     for (const url of todo) {
       if (fetched >= limit) break;
       fetched += 1;
+      if (fetched % 25 === 0) console.log(`  …${fetched}/${todo.length}  (${created} stored)`);
       const section = categorise(url);
       let page;
       try { page = await scrapePage(url); } catch { page = null; }
