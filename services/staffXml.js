@@ -41,9 +41,7 @@ async function parseFeed(text) {
   try {
     const feed = await rss.parseString(text);
     if (feed.items && feed.items.length) {
-      return feed.items
-        .map((it) => ({ name: (it.title || '').trim(), url: it.link || null }))
-        .filter((x) => x.name);
+      return feed.items.map(parseItem).filter((x) => x.name);
     }
   } catch { /* not RSS — fall through */ }
 
@@ -56,14 +54,34 @@ async function parseFeed(text) {
       const name = ($el.find('name, fullname, title, displayname').first().text() || $el.attr('name') || '').trim();
       const url = ($el.find('url, link, profileurl, profile').first().text()
         || $el.find('link').attr('href') || $el.attr('url') || '').trim() || null;
-      if (name) out.push({ name, url });
+      if (name) out.push({ name, url, title: null, faculty: null, summary: '' });
     });
     if (out.length) break;
   }
   return out;
 }
 
-/** Step 1 — cross-reference the XML staff listing. */
+/** Prettify a URL faculty slug, e.g. "art-design-humanities" -> "Art Design Humanities". */
+function facultyFromUrl(url) {
+  try {
+    const seg = new URL(url).pathname.split('/').filter(Boolean);
+    const i = seg.indexOf('academic-staff');
+    const slug = i >= 0 ? seg[i + 1] : null;
+    return slug ? slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : null;
+  } catch { return null; }
+}
+
+/** Extract { name, title, faculty, url, summary } from a feed item.
+ *  description looks like "Full Name, Role at De Montfort University (DMU), Leicester, UK". */
+function parseItem(it) {
+  const desc = (it.contentSnippet || it.content || it.summary || '').replace(/\s+/g, ' ').trim();
+  const name = (desc.split(',')[0] || '').trim() || (it.title || '').trim();
+  const m = desc.match(/,\s*(.+?)\s+at De Montfort/i);
+  const title = m ? m[1].trim() : null;
+  return { name, title, faculty: facultyFromUrl(it.link), url: it.link || null, summary: desc };
+}
+
+/** Step 1 — cross-reference the XML staff listing (name, role, faculty from the feed). */
 async function crossReferenceXml() {
   const { ok, status, text } = await getText(XML_URL, { headers: { Accept: 'application/xml,text/xml' } });
   if (!ok) return { fetched: 0, created: 0, error: `staff XML feed -> ${status}` };
@@ -71,13 +89,14 @@ async function crossReferenceXml() {
   const people = await parseFeed(text);
   const existing = existingNormNames();
   let created = 0;
-  const ins = db.prepare(`INSERT INTO academics (name, profile_url, norm_name, source)
-    VALUES (?,?,?, 'xml')`);
+  const ins = db.prepare(`INSERT INTO academics (name, title, department, faculty, profile_url, profile_text, norm_name, source)
+    VALUES (?,?,?,?,?,?,?, 'xml')`);
   const tx = db.transaction(() => {
     for (const p of people) {
       const nn = normName(p.name);
       if (!nn || existing.has(nn)) continue;   // already known from Contensis
-      ins.run(p.name, p.url, nn);
+      // faculty doubles as a weak department signal until profile pages are scraped.
+      ins.run(p.name, p.title, p.faculty, p.faculty, p.url, p.summary || null, nn);
       existing.add(nn);
       created += 1;
     }

@@ -14,7 +14,7 @@ const cheerio = require('cheerio');
 const { getJson, getText, sleep } = require('../lib/http');
 const { db, run, get, logFetch } = require('../db/database');
 
-const ROOT = process.env.CONTENSIS_ROOT_URL || 'https://api-dmu.cloud.contensis.com';
+const ROOT = process.env.CONTENSIS_ROOT_URL || 'https://cms-dmu.cloud.contensis.com';
 const TOKEN = process.env.CONTENSIS_ACCESS_TOKEN || 'uGIVAIkICmZu3vz7B9rBgLu7S7OTWhusUQn1f4YgJNZ1kyon';
 const PROJECT = process.env.CONTENSIS_PROJECT_ID || 'website';
 
@@ -165,12 +165,17 @@ function upsertEvent(e) {
     VALUES (?,?,?,?,?,?,?,?,?,?)`, [...params, cid]).lastInsertRowid;
 }
 
-// ---- Profile page scraping (publications) ----------------------------------
+// ---- Profile page scraping (research interests + publications) -------------
 
+/** Scrape an academic's public profile page for research interests / biography
+ *  (profile_text) and their publications list. Both feed the matching engine. */
 async function enrichPublications(limit = Infinity) {
+  // Anyone with a profile URL that we haven't deep-scraped yet (no publications,
+  // or only the short feed-seeded profile text).
   const rows = db.prepare(
-    `SELECT id, profile_url FROM academics WHERE profile_url IS NOT NULL
-     AND (publications_json IS NULL OR publications_json = '')`
+    `SELECT id, profile_url, profile_text FROM academics WHERE profile_url IS NOT NULL AND profile_url != ''
+     AND (publications_json IS NULL OR publications_json = '' OR publications_json = '[]'
+          OR profile_text IS NULL OR length(profile_text) < 160)`
   ).all().slice(0, limit === Infinity ? undefined : limit);
   let enriched = 0;
   for (const a of rows) {
@@ -178,19 +183,42 @@ async function enrichPublications(limit = Infinity) {
       const { ok, text } = await getText(a.profile_url);
       if (ok) {
         const $ = cheerio.load(text);
+        $('script, style, nav, header, footer').remove();
+
+        // Publications: items under a "Publications" heading.
         const pubs = [];
-        // Heuristic: a "Publications" heading followed by a list.
-        $('h2, h3').each((_, h) => {
-          if (/publication/i.test($(h).text())) {
-            $(h).nextUntil('h2, h3').find('li, p').each((__, li) => {
-              const t = $(li).text().trim();
+        $('h1, h2, h3, h4').each((_, h) => {
+          if (/publication|research output/i.test($(h).text())) {
+            $(h).nextUntil('h1, h2, h3, h4').find('li, p').each((__, li) => {
+              const t = $(li).text().replace(/\s+/g, ' ').trim();
               if (t.length > 15) pubs.push(t);
             });
           }
         });
-        if (pubs.length) {
-          run('UPDATE academics SET publications_json=? WHERE id=?',
-            [JSON.stringify(pubs.slice(0, 100)), a.id]);
+
+        // Profile narrative: text under profile / research-interest / biography headings.
+        let narrative = '';
+        $('h1, h2, h3, h4').each((_, h) => {
+          if (/profile|research interest|biography|about|expertise|teaching/i.test($(h).text())) {
+            narrative += ' ' + $(h).nextUntil('h1, h2, h3, h4').text();
+          }
+        });
+        narrative = narrative.replace(/\s+/g, ' ').trim().slice(0, 4000);
+        // Fall back to the main content area if no headings matched.
+        if (narrative.length < 120) {
+          narrative = ($('main').text() || $('#main').text() || $('article').text() || '')
+            .replace(/\s+/g, ' ').trim().slice(0, 4000);
+        }
+
+        const sets = [], params = [];
+        if (pubs.length) { sets.push('publications_json=?'); params.push(JSON.stringify(pubs.slice(0, 100))); }
+        if (narrative && narrative.length > (a.profile_text || '').length) {
+          sets.push('profile_text=?'); params.push(narrative);
+        }
+        if (sets.length) {
+          sets.push("last_scraped=datetime('now')");
+          params.push(a.id);
+          run(`UPDATE academics SET ${sets.join(', ')} WHERE id=?`, params);
           enriched += 1;
         }
       }
