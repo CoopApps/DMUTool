@@ -29,21 +29,28 @@ async function sitemapUrls() {
 /** Categorise a URL into a content section (or null = ignore). */
 function categorise(url) {
   const p = url.toLowerCase();
+  // Skip section-root / trailing-slash variants (the .aspx version is also listed).
+  if (p.endsWith('/')) return null;
   if (p.includes('/study/courses/')) {
-    // Listing/category pages (…/all-…, …/undergraduate-courses.aspx) aren't a course.
-    if (/(courses\.aspx|undergraduate-courses|postgraduate-courses|foundation-courses|distance-learning|extended-education|part-time-courses|january-start|learning-beyond-registration|all-[a-z-]+\.aspx|index\.aspx)$/.test(p)) {
+    if (/(courses\.aspx|short-courses\/about|undergraduate-courses|postgraduate-courses|foundation-courses|distance-learning|extended-education|part-time-courses|january-start|learning-beyond-registration|all-[a-z-]+\.aspx)$/.test(p)) {
       return 'course_index';
     }
     return 'course';
   }
   if (p.includes('/sdg')) return 'sdg';
   if (p.includes('/research/')) return 'research';
-  if (p.includes('/about-dmu/news/')) return 'news';
+  if (p.includes('/about-dmu/news/')) {
+    // Recent news only — the archive goes back many years.
+    return /\/(202[4-9]|203\d)\//.test(p) ? 'news' : 'news_old';
+  }
   if (p.includes('/events/')) return 'event';
-  if (p.includes('/community/public-engagement') || p.includes('/empowering-university') ||
+  if (p.includes('/empowering-university') || p.includes('/community/public-engagement') ||
       p.includes('/governance/') || p.includes('/community/')) return 'engagement';
   return null;
 }
+
+// Durable reference content scraped by default; news/event are opt-in via --only.
+const DEFAULT_SECTIONS = ['course', 'research', 'sdg', 'engagement', 'news'];
 
 /** Dry run — bucket the whole sitemap and show counts + samples. */
 async function report() {
