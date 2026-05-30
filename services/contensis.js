@@ -178,7 +178,11 @@ async function enrichPublications(limit = Infinity) {
           OR profile_text IS NULL OR length(profile_text) < 160)`
   ).all().slice(0, limit === Infinity ? undefined : limit);
   let enriched = 0;
+  console.log(`Enriching ${rows.length} academic profiles (research interests + publications, 1 req/2s)…`);
+  let i = 0;
   for (const a of rows) {
+    i += 1;
+    if (i % 25 === 0) console.log(`  …${i}/${rows.length}  (${enriched} updated)`);
     try {
       const { ok, text } = await getText(a.profile_url);
       if (ok) {
