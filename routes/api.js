@@ -214,6 +214,7 @@ const SOURCE_RUNNERS = {
   email: () => require('../services/email').sendDigest(),
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
   lordsRefresh: () => require('../services/lords').refreshLords(),
+  commonsRefresh: () => require('../services/lords').refreshCommons(),
   ukri: () => require('../services/ukri').run(),
   alliance: () => require('../services/alliance').run(),
   staffXml: () => require('../services/staffXml').run(),

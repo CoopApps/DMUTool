@@ -27,6 +27,8 @@ const jobs = [
   ['appgs', () => require('../services/appgs').run()],
   ['ukri', () => require('../services/ukri').run()],
   ['alliance', () => require('../services/alliance').run()],
+  ['commonsRefresh', () => require('../services/lords').refreshCommons()],
+  ['lordsRefresh', () => require('../services/lords').refreshLords()],
 ];
 
 async function main() {
