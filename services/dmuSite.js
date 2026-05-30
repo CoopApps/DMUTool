@@ -15,10 +15,13 @@ const { db, get, run, logFetch } = require('../db/database');
 
 const SITEMAP = process.env.DMU_SITEMAP_URL || 'https://www.dmu.ac.uk/sitemap.xml';
 const DELAY = parseInt(process.env.DMU_SCRAPE_DELAY_MS || '2000', 10);
+// DMU's site does strict content negotiation (Accept: application/xml -> 406)
+// and prefers a browser-ish UA, so use these for all public-site requests.
+const HDRS = { 'User-Agent': 'Mozilla/5.0 (compatible; DMU-Tool/1.0)', Accept: '*/*' };
 
 /** Pull all <loc> URLs from the sitemap. */
 async function sitemapUrls() {
-  const { ok, status, text } = await getText(SITEMAP, { headers: { Accept: 'application/xml' } });
+  const { ok, status, text } = await getText(SITEMAP, { headers: HDRS });
   if (!ok) throw new Error(`sitemap -> ${status}`);
   return text.split('<loc>').slice(1).map((s) => s.split('<')[0].trim()).filter(Boolean);
 }
@@ -65,7 +68,7 @@ async function report() {
 
 /** Scrape a page into { title, summary, body }. */
 async function scrapePage(url) {
-  const { ok, text } = await getText(url, { headers: { 'User-Agent': 'DMU-Tool/1.0' } });
+  const { ok, text } = await getText(url, { headers: HDRS });
   if (!ok) return null;
   const $ = cheerio.load(text);
   const title = ($('h1').first().text() || $('title').text() || '')
