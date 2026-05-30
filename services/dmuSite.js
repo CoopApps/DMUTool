@@ -134,7 +134,7 @@ function storeContent(url, section, page) {
  * Crawl + scrape. options.sections limits which categories to scrape;
  * options.limit caps total pages (per run). Polite DELAY between requests.
  */
-async function run_({ sections = ['course', 'research', 'sdg', 'news', 'event', 'engagement'], limit = Infinity } = {}) {
+async function run_({ sections = DEFAULT_SECTIONS, limit = Infinity } = {}) {
   const started_at = new Date().toISOString();
   let fetched = 0, created = 0, error = null;
   try {
