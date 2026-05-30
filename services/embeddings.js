@@ -10,12 +10,13 @@
  * VOYAGE_API_KEY; everything degrades gracefully when it's absent.
  */
 
-const { fetch } = require('../lib/http');
+const { fetch, sleep } = require('../lib/http');
 const { db, all, get, run } = require('../db/database');
 
 const API = 'https://api.voyageai.com/v1/embeddings';
 const MODEL = process.env.VOYAGE_MODEL || 'voyage-3.5-lite';
-const BATCH = 64;
+const BATCH = parseInt(process.env.VOYAGE_BATCH || '64', 10);     // free tier: set ~8
+const DELAY = parseInt(process.env.VOYAGE_DELAY_MS || '0', 10);   // free tier: set ~21000 (3 req/min)
 
 const ITEM_TABLES = {
   parliamentary_item: { table: 'parliamentary_items', text: "title || ' ' || COALESCE(full_text, snippet, '')" },
@@ -28,13 +29,19 @@ function isConfigured() { return !!process.env.VOYAGE_API_KEY; }
 
 const clip = (t, n = 1600) => (t || '').replace(/\s+/g, ' ').trim().slice(0, n);
 
-/** Embed an array of texts. Returns array of number[] (one per input). */
-async function embedBatch(texts, inputType) {
+/** Embed an array of texts. Retries on 429 (rate limit) with backoff. */
+async function embedBatch(texts, inputType, attempt = 0) {
   const res = await fetch(API, {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.VOYAGE_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ input: texts, model: MODEL, input_type: inputType }),
   });
+  if (res.status === 429 && attempt < 6) {
+    const wait = Math.min(60000, 20000 * Math.pow(1.5, attempt));
+    console.log(`  rate-limited (429) — waiting ${Math.round(wait / 1000)}s…`);
+    await sleep(wait);
+    return embedBatch(texts, inputType, attempt + 1);
+  }
   if (!res.ok) throw new Error(`Voyage ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
   return data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
@@ -69,6 +76,7 @@ async function embedAcademics() {
     tx();
     done += chunk.length;
     console.log(`  academics embedded ${done}/${rows.length}`);
+    if (DELAY) await sleep(DELAY);
   }
   return done;
 }
@@ -86,6 +94,7 @@ async function embedItems(itemType) {
     tx();
     done += chunk.length;
     if (done % 256 === 0 || done === rows.length) console.log(`  ${itemType} embedded ${done}/${rows.length}`);
+    if (DELAY) await sleep(DELAY);
   }
   return done;
 }
