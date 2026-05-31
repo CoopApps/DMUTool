@@ -13,6 +13,21 @@ const { get, all } = require('../db/database');
 const { layout, esc, badge } = require('../lib/render');
 const matcher = require('../services/matcher');
 
+/** Link a member name to their MP/peer profile where resolvable; else to search. */
+function memberHtml(name, party) {
+  if (!name) return '';
+  const tail = party ? ` (${esc(party)})` : '';
+  const clean = String(name).replace(/\b(MP|Lord|Lady|Baroness|Sir|Dame|Dr|Rt Hon|The)\b/gi, '').replace(/[.,]/g, ' ').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (!parts.length) return esc(name) + tail;
+  const last = parts[parts.length - 1];
+  const matches = all('SELECT id, first_name FROM mps WHERE last_name = ? COLLATE NOCASE', [last]);
+  const m = matches.length === 1 ? matches[0]
+    : matches.find((x) => clean.toLowerCase().includes(String(x.first_name || '').toLowerCase()));
+  if (m) return `<a href="/mps/${m.id}">${esc(name)}</a>${tail} · <a href="/mps/${m.id}#log">log engagement →</a>`;
+  return `<a href="/mps?q=${encodeURIComponent(last)}">${esc(name)}</a>${tail}`;
+}
+
 const ITEM = {
   parliamentary_item: {
     table: 'parliamentary_items',
@@ -71,7 +86,7 @@ router.get('/:type/:id', (req, res) => {
 
   const body = `<div class="page-head"><h1>${esc(it.title || '(untitled)')}</h1></div>
     <p class="meta">${badge(it.source || 'Sector')}
-      ${it.meta ? ' · ' + esc(it.meta) : ''}${it.member ? ' · ' + esc(it.member) + (it.party ? ` (${esc(it.party)})` : '') : ''}
+      ${it.meta ? ' · ' + esc(it.meta) : ''}${it.member ? ' · ' + memberHtml(it.member, it.party) : ''}
       ${it.date ? ' · ' + esc((it.date || '').slice(0, 10)) : ''} ${deadlineBadge}
       ${it.group ? `<span class="kw-pill">${esc((it.group || '').split(',')[0])}</span>` : ''}</p>
     ${it.rationale ? `<p class="why intel-rationale">${esc(it.rationale)}</p>` : ''}

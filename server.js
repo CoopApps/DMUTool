@@ -38,6 +38,21 @@ app.use('/api', require('./routes/api'));
 app.get('/', (req, res) => res.redirect('/action'));
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
+// Branded 404 + error pages via the app layout.
+app.use((req, res) => {
+  const { layout } = require('./lib/render');
+  res.status(404).send(layout({ title: 'Not found',
+    body: '<div class="page-head"><h1>Page not found</h1></div><p class="empty">That page doesn’t exist. <a href="/action">Back to the Command Centre →</a></p>',
+    active: '' }));
+});
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  console.error(err);
+  const { layout } = require('./lib/render');
+  res.status(500).send(layout({ title: 'Error',
+    body: '<div class="page-head"><h1>Something went wrong</h1></div><p class="empty">An error occurred. <a href="/action">Back to the Command Centre →</a></p>',
+    active: '' }));
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
