@@ -130,6 +130,22 @@
     return handle(postJSON('/api/admin/context', { key, value: ev.target.value.value })); }
   function addContext(ev) { ev.preventDefault();
     return handle(postJSON('/api/admin/context', formData(ev.target)).then(() => location.reload())); }
+  async function savePolicyUnit(ev, role) { ev.preventDefault();
+    const { names } = formData(ev.target);
+    try {
+      const r = await postJSON('/api/admin/policy-unit', { role, names });
+      const msg = `Matched ${r.matched.length}` +
+        (r.unmatched.length ? `. Unmatched (not in directory):\n\n${r.unmatched.join('\n')}` : '.');
+      alert(msg);
+      location.reload();
+    } catch (e) { alert('Error: ' + e.message); }
+    return false;
+  }
+  async function clearPolicyUnit() {
+    if (!confirm('Clear all Policy Unit role assignments?')) return;
+    await handle(postJSON('/api/admin/policy-unit/clear', {}));
+    location.reload();
+  }
   async function runSource(source, btn) {
     btn.textContent = 'Running…'; btn.disabled = true;
     try { await postJSON(`/api/admin/run/${source}`); flash('Done'); location.reload(); }
@@ -218,6 +234,6 @@
 
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
+    addContext, savePolicyUnit, clearPolicyUnit, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
     saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

@@ -5,11 +5,45 @@ const router = express.Router();
 const { all, get, run } = require('../db/database');
 const { layout, panel, esc } = require('../lib/render');
 
+const PU_ROLES = [
+  ['team', 'Policy Unit Team', 'policy.dmu.ac.uk/policy-unit-team/'],
+  ['steering', 'Steering Group', 'policy.dmu.ac.uk/steering-group/'],
+  ['advisor', 'Advisors', 'policy.dmu.ac.uk/policy-unit-advisors/'],
+  ['fellow', 'Policy Fellows', 'policy.dmu.ac.uk/visiting-scholars/'],
+];
+
+function policyUnitPanel(members) {
+  const byRole = {};
+  for (const m of members) (byRole[m.policy_unit_role] = byRole[m.policy_unit_role] || []).push(m);
+  const sections = PU_ROLES.map(([key, label, source]) => {
+    const list = byRole[key] || [];
+    const rows = list.map((m) =>
+      `<li><a href="/academics/${m.id}">${esc(m.name)}</a>${m.department ? ` <span class="dept">${esc(m.department)}</span>` : ''}</li>`).join('');
+    return `<div class="pu-role">
+      <h3>${esc(label)} <span class="count">${list.length}</span></h3>
+      <p class="why">Source: <code>${esc(source)}</code> — paste names (one per line) from that page; existing academics get flagged, unmatched names are reported back so you know who's missing from the directory.</p>
+      <ul class="intel">${rows || '<li class="empty">No members assigned yet.</li>'}</ul>
+      <form class="inline" onsubmit="return DMU.savePolicyUnit(event, '${key}')">
+        <textarea name="names" rows="4" cols="48" placeholder="Dr Jane Bloggs&#10;Prof John Smith"></textarea>
+        <button>Add ${esc(label.toLowerCase())}</button>
+      </form>
+    </div>`;
+  }).join('');
+  return `<div class="pu-panel">
+    <p class="why">The Policy Unit site blocks automated scraping, so members are added by paste. Names are matched against the academic directory by normalised name.
+      <button type="button" class="danger" onclick="DMU.clearPolicyUnit()" style="margin-left:10px">Clear all roles</button></p>
+    <div class="pu-grid">${sections}</div>
+  </div>`;
+}
+
 router.get('/', (req, res) => {
   const groups = all('SELECT * FROM keyword_groups ORDER BY name');
   const bodies = all('SELECT * FROM professional_bodies ORDER BY name');
   const logs = all('SELECT * FROM fetch_log ORDER BY started_at DESC LIMIT 40');
   const context = all('SELECT * FROM dmu_context ORDER BY key');
+  const puMembers = all(
+    `SELECT id, name, department, policy_unit_role FROM academics
+     WHERE policy_unit_role IS NOT NULL ORDER BY policy_unit_role, name`);
 
   // ---- Academic directory coverage ----
   const cov = {
@@ -94,6 +128,7 @@ router.get('/', (req, res) => {
       <span class="pill">Background queue: ${queuePending} pending</span></div>
     <div class="panelgrid">
       ${panel({ title: 'Academic directory coverage', body: coverageBody, style: 'grid-column:1/-1;' })}
+      ${panel({ title: 'DMU Policy Unit members', pad: true, style: 'grid-column:1/-1;', body: policyUnitPanel(puMembers) })}
       ${panel({ title: 'Keyword groups', pad: true, body:
         `<table><thead><tr><th>Group</th><th>Keywords (comma-separated)</th></tr></thead><tbody>${groupRows}</tbody></table>
         <form class="inline" onsubmit="return DMU.addGroup(event)">

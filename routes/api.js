@@ -195,6 +195,35 @@ router.put('/admin/bodies/:id', (req, res) => {
 });
 
 // ---- Admin: dmu context ----------------------------------------------------
+// Bulk-assign a DMU Policy Unit role to academics by name. Body: { role, names }
+// where `names` is one name per line. The site's WAF blocks automated scraping,
+// so this is fed by paste from the public roster pages. Matches against
+// norm_name; reports unmatched names so the user can correct them or add the
+// person to the directory.
+router.post('/admin/policy-unit', (req, res) => {
+  const ROLES = { team: 'team', steering: 'steering', advisor: 'advisor', fellow: 'fellow', '': '' };
+  const role = ROLES[String(req.body.role || '').toLowerCase()];
+  if (role == null) return res.status(400).json({ error: 'Unknown role' });
+  const { normName } = require('../lib/names');
+  const raw = String(req.body.names || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  const matched = [], unmatched = [];
+  for (const line of raw) {
+    // Tolerate "Dr Jane Bloggs (Faculty of X)" — strip parens/honorifics for matching.
+    const clean = line.replace(/\([^)]*\)/g, '').replace(/^(Dr|Prof|Professor|Mr|Ms|Mrs|Miss)\.? /i, '').trim();
+    const nn = normName(clean);
+    const a = get('SELECT id, name FROM academics WHERE norm_name = ? LIMIT 1', [nn]);
+    if (a) { run('UPDATE academics SET policy_unit_role = ? WHERE id = ?', [role || null, a.id]); matched.push(a.name); }
+    else { unmatched.push(line); }
+  }
+  res.json({ ok: true, matched, unmatched });
+});
+
+// Clear all Policy Unit role assignments (e.g. before a fresh paste).
+router.post('/admin/policy-unit/clear', (req, res) => {
+  run("UPDATE academics SET policy_unit_role = NULL WHERE policy_unit_role IS NOT NULL");
+  res.json({ ok: true });
+});
+
 router.post('/admin/context', (req, res) => {
   const { key, value } = req.body;
   run(`INSERT INTO dmu_context (key, value, last_updated) VALUES (?,?,datetime('now'))

@@ -31,6 +31,10 @@ function init() {
   // existing databases upgrade in place (CREATE TABLE IF NOT EXISTS won't).
   ensureColumn('academics', 'source', "TEXT DEFAULT 'contensis'");
   ensureColumn('academics', 'norm_name', 'TEXT');
+  // DMU Policy Unit role — flags academics who sit on the Unit's team /
+  // steering group / advisory board / fellowship. Drives a profile badge and
+  // is intended to surface them in expert matching for Unit-aligned topics.
+  ensureColumn('academics', 'policy_unit_role', 'TEXT');
 
   // Research projects gain a keyword_groups tag (incl. SDG mapping) for drafting.
   ensureColumn('research_projects', 'keyword_groups', 'TEXT');

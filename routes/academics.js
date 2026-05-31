@@ -34,9 +34,13 @@ router.get('/', (req, res) => {
   const faculty = (req.query.faculty || '').trim();
   const dept = (req.query.dept || '').trim();
   const srcLabel = { contensis: 'Contensis', xml: 'staff listing', legacy: 'legacy record' };
+  const PU_LABEL = { team: 'Policy Unit team', steering: 'Steering group', advisor: 'Policy Unit advisor', fellow: 'Policy fellow' };
+  const puBadge = (a) => a.policy_unit_role && PU_LABEL[a.policy_unit_role]
+    ? `<span class="tag pink" title="DMU Policy Unit role">★ ${esc(PU_LABEL[a.policy_unit_role])}</span>` : '';
 
   const academicCard = (a) => `<article class="card academic">
     <h3><a href="/academics/${a.id}">${esc(a.name)}</a> <span class="dept">${esc(a.title || '')}${a.department ? ' · ' + esc(a.department) : ''}</span>
+      ${puBadge(a)}
       ${a.source && a.source !== 'contensis' ? `<span class="kw-pill">${esc(srcLabel[a.source] || a.source)}</span>` : ''}</h3>
     <p class="contact">${a.email ? `<a href="mailto:${esc(a.email)}">${esc(a.email)}</a>` : ''}
       ${a.phone ? ` · ${esc(a.phone)}` : ''} · <a href="/academics/${a.id}">View profile</a></p>
@@ -139,7 +143,10 @@ router.get('/:id(\\d+)', (req, res) => {
     ? `<section><h2>Profile &amp; research interests</h2><div class="profile-text">${esc(a.profile_text)}</div></section>`
     : '<section><h2>Profile &amp; research interests</h2><p class="empty">Not captured yet — run the profile enrichment scrape to pull research interests and biography into the tool.</p></section>';
 
-  const body = `<div class="page-head"><h1>${esc(a.name)}</h1></div>
+  const PU_LABEL2 = { team: 'Policy Unit team', steering: 'Policy Unit steering group', advisor: 'Policy Unit advisor', fellow: 'DMU Policy Fellow' };
+  const puTag = a.policy_unit_role && PU_LABEL2[a.policy_unit_role]
+    ? ` <span class="tag pink" title="DMU Policy Unit role">★ ${esc(PU_LABEL2[a.policy_unit_role])}</span>` : '';
+  const body = `<div class="page-head"><h1>${esc(a.name)}${puTag}</h1></div>
     <p class="meta"><b>${esc(a.title || '')}</b>${a.department ? ' · ' + esc(a.department) : ''}${a.faculty && a.faculty !== a.department ? ' · ' + esc(a.faculty) : ''}
       <span class="kw-pill">${esc(srcLabel[a.source] || a.source || '')}</span></p>
     <p class="contact">${a.email ? `<a href="mailto:${esc(a.email)}">${esc(a.email)}</a>` : ''}${a.phone ? ' · ' + esc(a.phone) : ''}

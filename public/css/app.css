@@ -166,6 +166,13 @@ body.dashmode .dash-kpis { margin: 0 2px 10px; }
 .sector-tabs { max-width: 60vw; overflow-x: auto; flex-wrap: nowrap; }
 .sector-tabs::-webkit-scrollbar { height: 5px; }
 .assessing-note { padding: 10px 12px; }
+/* Admin → DMU Policy Unit members */
+.pu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 10px; }
+.pu-role { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fafbfc; }
+.pu-role h3 { margin: 0 0 6px; font-size: 15px; color: var(--dmu); }
+.pu-role textarea { width: 100%; max-width: 100%; resize: vertical; font-size: 13px; }
+.pu-role .intel { margin: 6px 0 10px; max-height: 180px; overflow-y: auto; }
+.pu-role .why { font-size: 12px; margin: 0 0 6px; }
 .card-actions button, .filters button, form button, .draft-actions button {
   background: linear-gradient(180deg, #16315f, var(--dmu)); color: #fff; border: 0; border-radius: 7px;
   padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; letter-spacing: .01em;
