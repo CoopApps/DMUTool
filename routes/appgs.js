@@ -9,7 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const { all } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 const { linkOfficers } = require('../services/appgs');
 
 router.get('/', (req, res) => {
@@ -39,11 +39,16 @@ router.get('/', (req, res) => {
     <a href="/appgs?show=all" class="${showAll ? 'active' : ''}">All groups</a>
   </div>`;
 
-  const body = `<div class="page-head"><h1>All-Party Parliamentary Groups</h1>${toggle}</div>
-    <p class="why">APPGs whose subject matches DMU's topics — their officer MPs are a ready-made engagement route.</p>
-    ${rows.length ? sections : '<p class="empty">No APPGs on record. Run the APPG scraper from Admin (register URL may need tuning in .env).</p>'}`;
+  const body = `<div class="dash-head"><h1>All-Party Parliamentary Groups</h1>
+      <span class="sub">APPGs matching DMU topics — their officer MPs are a ready-made engagement route</span>
+      <span class="spacer"></span>${toggle}</div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Groups', count: rows.length,
+        body: rows.length ? sections : '<p class="empty">No APPGs on record. Run the APPG scraper from Admin (register URL may need tuning in .env).</p>',
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'APPGs', body, active: '/appgs' }));
+  res.send(layout({ title: 'APPGs', body, active: '/appgs', dashboard: true }));
 });
 
 module.exports = router;

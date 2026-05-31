@@ -8,7 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const { all } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 
 const TYPE_LABEL = { news: 'News', hansard: 'Hansard', written: 'Written Q' };
 const TYPE_CLS = { news: 'sector', hansard: 'commons', written: 'written' };
@@ -46,14 +46,21 @@ router.get('/', (req, res) => {
     ${a.snippet ? `<p class="snippet">${esc(a.snippet.slice(0, 160))}</p>` : ''}
   </article>`).join('');
 
-  const body = `<div class="page-head"><h1>University Alliance peers</h1></div>
-    <p class="why">Monitoring fellow UA members' public affairs activity — institutional news and their parliamentary footprint. Benchmarking only; separate from DMU's own relevance.</p>
-    <div class="chips">${memberChips}</div>
-    <div class="tabs">${typeTabs}</div>
-    ${member ? `<p class="count">${esc(member)} — ${activity.length} items <a href="/alliance">clear</a></p>` : `<p class="count">${activity.length} items across ${members.length} peers</p>`}
-    ${rows || '<p class="empty">No peer activity recorded yet. Run the Alliance scan from Admin.</p>'}`;
+  const countLabel = member
+    ? `${esc(member)} — ${activity.length} items <a href="/alliance">clear</a>`
+    : `${activity.length} items across ${members.length} peers`;
+  const body = `<div class="dash-head"><h1>University Alliance peers</h1>
+      <span class="sub">benchmarking fellow UA members' public-affairs activity</span>
+      <span class="spacer"></span>
+      <div class="tabs">${typeTabs}</div></div>
+    <div class="chips" style="margin:0 2px 8px">${memberChips}</div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Peer activity', actions: `<span class="muted">${countLabel}</span>`,
+        body: rows || '<p class="empty">No peer activity recorded yet. Run the Alliance scan from Admin.</p>',
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'UA peers', body, active: '/alliance' }));
+  res.send(layout({ title: 'UA peers', body, active: '/alliance', dashboard: true }));
 });
 
 module.exports = router;

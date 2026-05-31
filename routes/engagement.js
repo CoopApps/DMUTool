@@ -14,7 +14,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 
 const ACTIVITY_DAYS = 90;
 const STALE_DAYS = 180;
@@ -96,7 +96,7 @@ router.get('/', (req, res) => {
     <td><button onclick="DMU.openDraft(0,'parliamentary_item','mp_email',${m.id})">Re-engage</button></td>
   </tr>`).join('');
 
-  const groupFilter = `<form class="filters" method="get">
+  const groupFilter = `<form class="filters" method="get" style="margin:0">
     <select name="group" onchange="this.form.submit()">
       <option value="">All topics</option>
       ${groups.map((g) => `<option ${g.name === group ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}
@@ -104,22 +104,22 @@ router.get('/', (req, res) => {
     <a class="csvbtn" href="/api/engagement/targets.csv?group=${encodeURIComponent(group)}">Export CSV</a>
   </form>`;
 
-  const body = `<div class="page-head"><h1>Engagement</h1></div>
+  const body = `<div class="dash-head"><h1>Engagement</h1>
+      <span class="sub">who to contact, who to follow up, who's gone cold</span></div>
+    <div class="dashgrid" style="grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;">
+      ${panel({ title: 'Follow-ups due', count: fu.length, pad: true,
+        body: fu.length ? `<table><thead><tr><th>Date</th><th>MP</th><th>Type</th><th>Detail</th><th></th></tr></thead><tbody>${fuRows}</tbody></table>`
+          : '<p class="empty">No follow-ups flagged. Tick "Needs follow-up" when logging a contact.</p>' })}
+      ${panel({ title: 'Target list — active, never contacted', count: targets.length, pad: true,
+        style: 'grid-row: 1 / 3;', actions: groupFilter,
+        body: targets.length ? `<table><thead><tr><th>MP</th><th>Party</th><th>Constituency</th><th>Activity</th><th></th></tr></thead><tbody>${targetRows}</tbody></table>`
+          : '<p class="empty">No untouched MPs with recent activity on this topic.</p>' })}
+      ${panel({ title: 'Stale relationships — active again', count: stale.length, pad: true,
+        body: stale.length ? `<table><thead><tr><th>MP</th><th>Last contact</th><th>Recent activity</th><th></th></tr></thead><tbody>${staleRows}</tbody></table>`
+          : '<p class="empty">No stale relationships needing attention.</p>' })}
+    </div>`;
 
-    <section><h2>Follow-ups due <span class="count">${fu.length}</span></h2>
-      ${fu.length ? `<table><thead><tr><th>Date</th><th>MP</th><th>Type</th><th>Detail</th><th></th></tr></thead><tbody>${fuRows}</tbody></table>`
-        : '<p class="empty">No follow-ups flagged. Tick "Needs follow-up" when logging a contact.</p>'}</section>
-
-    <section><h2>Target list — active on our topics, never contacted <span class="count">${targets.length}</span></h2>
-      ${groupFilter}
-      ${targets.length ? `<table><thead><tr><th>MP</th><th>Party</th><th>Constituency</th><th>Activity</th><th></th></tr></thead><tbody>${targetRows}</tbody></table>`
-        : '<p class="empty">No untouched MPs with recent activity on this topic.</p>'}</section>
-
-    <section><h2>Stale relationships — engaged before, active again <span class="count">${stale.length}</span></h2>
-      ${stale.length ? `<table><thead><tr><th>MP</th><th>Last contact</th><th>Recent activity</th><th></th></tr></thead><tbody>${staleRows}</tbody></table>`
-        : '<p class="empty">No stale relationships needing attention.</p>'}</section>`;
-
-  res.send(layout({ title: 'Engagement', body, active: '/engagement' }));
+  res.send(layout({ title: 'Engagement', body, active: '/engagement', dashboard: true }));
 });
 
 module.exports = { router, targetList };

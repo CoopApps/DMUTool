@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 const mpProfile = require('../services/mpProfile');
 const twfy = require('../services/theyworkforyou');
 
@@ -27,24 +27,29 @@ router.get('/', (req, res) => {
     <td>${m.is_active ? 'Active' : 'Inactive'}</td>
   </tr>`).join('');
 
-  const body = `<div class="page-head"><h1>Members tracker</h1></div>
-    <form class="filters" method="get">
-      <input name="q" placeholder="Search name / constituency" value="${esc(q)}">
-      <select name="house"><option value="">Both Houses</option>
-        <option value="Commons" ${house==='Commons'?'selected':''}>Commons</option>
-        <option value="Lords" ${house==='Lords'?'selected':''}>Lords</option></select>
-      <select name="party"><option value="">All parties</option>
-        ${parties.map((p) => `<option ${p.party === party ? 'selected' : ''}>${esc(p.party)}</option>`).join('')}</select>
-      <select name="active"><option value="">All</option>
-        <option value="1" ${active==='1'?'selected':''}>Active</option>
-        <option value="0" ${active==='0'?'selected':''}>Inactive</option></select>
-      <button>Filter</button>
-    </form>
-    <p class="count">${mps.length} members</p>
-    <table class="mp-table"><thead><tr><th>Name</th><th>Party</th><th>Seat / House</th><th>Status</th></tr></thead>
-    <tbody>${rows}</tbody></table>`;
+  const body = `<div class="dash-head"><h1>Members tracker</h1>
+      <span class="sub">MPs & peers relevant to DMU</span>
+      <span class="spacer"></span>
+      <form class="filters" method="get">
+        <input name="q" placeholder="Search name / constituency" value="${esc(q)}">
+        <select name="house"><option value="">Both Houses</option>
+          <option value="Commons" ${house==='Commons'?'selected':''}>Commons</option>
+          <option value="Lords" ${house==='Lords'?'selected':''}>Lords</option></select>
+        <select name="party"><option value="">All parties</option>
+          ${parties.map((p) => `<option ${p.party === party ? 'selected' : ''}>${esc(p.party)}</option>`).join('')}</select>
+        <select name="active"><option value="">All</option>
+          <option value="1" ${active==='1'?'selected':''}>Active</option>
+          <option value="0" ${active==='0'?'selected':''}>Inactive</option></select>
+        <button>Filter</button>
+      </form></div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Members', count: mps.length,
+        body: `<table class="mp-table"><thead><tr><th>Name</th><th>Party</th><th>Seat / House</th><th>Status</th></tr></thead>
+          <tbody>${rows}</tbody></table>`,
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'MPs', body, active: '/mps' }));
+  res.send(layout({ title: 'MPs', body, active: '/mps', dashboard: true }));
 });
 
 router.get('/:id', async (req, res) => {

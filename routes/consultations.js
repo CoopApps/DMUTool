@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, run, ageNewFlags } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 const matcher = require('../services/matcher');
 
 function deadlineClass(wdr) {
@@ -67,10 +67,16 @@ router.get('/', (req, res) => {
     <a href="/consultations?filter=all" class="${filter === 'all' ? 'active' : ''}">All</a>
   </div>`;
 
-  const body = `<div class="page-head"><h1>Government consultations</h1>${toggle}</div>
-    ${rows.length ? rows.map(card).join('') : '<p class="empty">No consultations on record. Run a GOV.UK fetch from Admin.</p>'}`;
+  const body = `<div class="dash-head"><h1>Government consultations</h1>
+      <span class="sub">open GOV.UK consultations on DMU topics</span>
+      <span class="spacer"></span>${toggle}</div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Consultations', count: rows.length,
+        body: rows.length ? rows.map(card).join('') : '<p class="empty">No consultations on record. Run a GOV.UK fetch from Admin.</p>',
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'Consultations', body, active: '/consultations' }));
+  res.send(layout({ title: 'Consultations', body, active: '/consultations', dashboard: true }));
 });
 
 module.exports = router;

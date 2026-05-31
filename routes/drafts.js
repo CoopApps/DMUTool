@@ -9,7 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const { all } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 const { OUTPUT_LABELS } = require('../services/docxExport');
 
 const STATUSES = ['generated', 'edited', 'approved', 'sent'];
@@ -53,11 +53,16 @@ router.get('/', (req, res) => {
     </div>
   </article>`).join('');
 
-  const body = `<div class="page-head"><h1>Drafts</h1>${filter}</div>
-    <p class="count">${drafts.length} saved draft${drafts.length === 1 ? '' : 's'}</p>
-    ${cards || '<p class="empty">No drafts yet. Use “Draft response” on any item to generate one.</p>'}`;
+  const body = `<div class="dash-head"><h1>Drafts</h1>
+      <span class="sub">AI-generated response drafts</span>
+      <span class="spacer"></span>${filter}</div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Saved drafts', count: drafts.length,
+        body: cards || '<p class="empty">No drafts yet. Use “Draft response” on any item to generate one.</p>',
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'Drafts', body, active: '/drafts' }));
+  res.send(layout({ title: 'Drafts', body, active: '/drafts', dashboard: true }));
 });
 
 module.exports = router;

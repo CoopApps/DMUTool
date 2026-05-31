@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get, db } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 
 /** Run an FTS5 search, falling back to LIKE if FTS errors on the query. */
 function search(q) {
@@ -94,12 +94,15 @@ router.get('/', (req, res) => {
     </section>`;
   }).join('');
 
-  const body = `<div class="page-head"><h1>Academic expert finder</h1></div>
-    ${searchForm}
-    <p class="count">${total} DMU academics across ${faculties.length} faculties — search above, or browse:</p>
-    ${facultyBlocks}`;
+  const body = `<div class="dash-head"><h1>Academic expert finder</h1>
+      <span class="sub">${total} DMU academics across ${faculties.length} faculties</span>
+      <span class="spacer"></span>${searchForm}</div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Browse by faculty', count: faculties.length,
+        body: facultyBlocks, pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'Academics', body, active: '/academics' }));
+  res.send(layout({ title: 'Academics', body, active: '/academics', dashboard: true }));
 });
 
 // In-tool academic profile — everything we hold, no link-out required.

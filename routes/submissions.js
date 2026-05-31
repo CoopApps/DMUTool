@@ -9,7 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const { all } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 
 router.get('/', (req, res) => {
   const filter = req.query.filter || 'all'; // all | submitted | inprogress
@@ -47,12 +47,17 @@ router.get('/', (req, res) => {
     <a href="/submissions?filter=inprogress" class="${filter === 'inprogress' ? 'active' : ''}">In progress</a>
   </div>`;
 
-  const body = `<div class="page-head"><h1>Submissions register</h1>${toggle}</div>
-    <p class="count">${rows.length} record${rows.length === 1 ? '' : 's'}</p>
-    ${rows.length ? `<table><thead><tr><th>Type</th><th>Body</th><th>Title</th><th>Deadline</th><th>Status</th><th>Contributors</th><th>Document</th></tr></thead><tbody>${tableRows}</tbody></table>`
-      : '<p class="empty">No submissions logged yet. Use the submission tracker on a committee inquiry or consultation.</p>'}`;
+  const body = `<div class="dash-head"><h1>Submissions register</h1>
+      <span class="sub">evidence DMU has submitted or is tracking</span>
+      <span class="spacer"></span>${toggle}</div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Records', count: rows.length,
+        body: rows.length ? `<table><thead><tr><th>Type</th><th>Body</th><th>Title</th><th>Deadline</th><th>Status</th><th>Contributors</th><th>Document</th></tr></thead><tbody>${tableRows}</tbody></table>`
+          : '<p class="empty">No submissions logged yet. Use the submission tracker on a committee inquiry or consultation.</p>',
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'Submissions', body, active: '/submissions' }));
+  res.send(layout({ title: 'Submissions', body, active: '/submissions', dashboard: true }));
 });
 
 module.exports = router;

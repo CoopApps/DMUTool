@@ -110,6 +110,9 @@ body.dashmode .topbar { flex: 0 0 auto; padding: 0 16px; }
 body.dashmode .mainnav a { padding: 12px 9px; font-size: 13px; }
 body.dashmode main { flex: 1 1 auto; min-height: 0; max-width: none; margin: 0;
   padding: 12px 16px; overflow: hidden; display: flex; flex-direction: column; }
+/* Panels in normal page flow (e.g. Admin) — responsive grid, page scrolls. */
+.panelgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; align-items: start; }
+.panelgrid .panel { max-height: none; }
 .dash-head { flex: 0 0 auto; display: flex; align-items: baseline; gap: 14px; margin: 0 2px 10px; }
 .dash-head h1 { font-size: 20px; margin: 0; }
 .dash-head .sub { color: var(--muted); font-size: 13px; }

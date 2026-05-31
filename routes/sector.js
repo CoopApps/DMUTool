@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 
 const TABS = [
   ['he_news', 'HE news'],
@@ -55,11 +55,15 @@ router.get('/', (req, res) => {
     </article>`;
   }).join('');
 
-  const body = `<div class="page-head"><h1>Sector watch</h1></div>
-    <div class="tabs">${tabnav}</div>
-    ${cards || '<p class="empty">No items in this panel yet.</p>'}`;
+  const body = `<div class="dash-head"><h1>Sector watch</h1>
+      <span class="sub">higher-education sector news & policy</span>
+      <span class="spacer"></span>
+      <div class="tabs">${tabnav}</div></div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Items', body: cards || '<p class="empty">No items in this panel yet.</p>', pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'Sector watch', body, active: '/sector' }));
+  res.send(layout({ title: 'Sector watch', body, active: '/sector', dashboard: true }));
 });
 
 module.exports = router;

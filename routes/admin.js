@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get, run } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 
 router.get('/', (req, res) => {
   const groups = all('SELECT * FROM keyword_groups ORDER BY name');
@@ -74,10 +74,7 @@ router.get('/', (req, res) => {
   const covSourceRows = cov.bySource.map((r) =>
     `<tr><td>${esc(sourceLabel[r.s] || r.s)}</td><td>${r.c}</td></tr>`).join('');
 
-  const body = `<div class="page-head"><h1>Admin</h1>
-    <span class="pill">Background queue: ${queuePending} pending</span></div>
-
-    <section><h2>Academic directory coverage</h2>
+  const coverageBody = `<div class="pad">
       <div class="stats">
         <div class="stat"><span class="num">${cov.total}</span>academics in directory</div>
         <div class="stat"><span class="num">${cov.matchable}</span>matchable (${pct(cov.matchable)}%)</div>
@@ -89,28 +86,32 @@ router.get('/', (req, res) => {
         <b>Matchable</b> = has profile text or publications (otherwise searchable by name only, weak at topic matching).
         <b>Awaiting profile scrape</b> = have a profile URL (e.g. XML-listing stubs) but no publications yet — run <code>staffXml</code> then the publication scraper.<br>
         Last Contensis crawl: ${lastCrawl('contensis')} · Last staff XML/legacy: ${lastCrawl('staffXml')} · Legacy records on file: ${cov.legacyTotal}
-      </p>
-    </section>
+      </p></div>`;
 
-    <section><h2>Keyword groups</h2>
-      <table><thead><tr><th>Group</th><th>Keywords (comma-separated)</th></tr></thead><tbody>${groupRows}</tbody></table>
-      <form class="inline" onsubmit="return DMU.addGroup(event)">
-        <input name="name" placeholder="New group name" required>
-        <input name="keywords" placeholder="keyword, keyword" size="40">
-        <button>Add group</button>
-      </form>
-    </section>
-    <section><h2>Professional bodies</h2>
-      <table><thead><tr><th>Body</th><th>Mappings</th></tr></thead><tbody>${bodyRows}</tbody></table></section>
-    <section><h2>Fetch log</h2>
-      <table><thead><tr><th>Source</th><th>Last run</th><th>Fetched</th><th>New</th><th>Error</th><th></th></tr></thead>
-      <tbody>${logRows}</tbody></table></section>
-    <section><h2>DMU context (drafting)</h2>
-      <table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>${ctxRows}</tbody></table>
-      <form class="inline" onsubmit="return DMU.addContext(event)">
-        <input name="key" placeholder="key" required><input name="value" placeholder="value" size="50">
-        <button>Add</button></form>
-    </section>`;
+  const body = `<div class="dash-head"><h1>Admin</h1>
+      <span class="sub">data sources, keywords & drafting context</span>
+      <span class="spacer"></span>
+      <span class="pill">Background queue: ${queuePending} pending</span></div>
+    <div class="panelgrid">
+      ${panel({ title: 'Academic directory coverage', body: coverageBody, style: 'grid-column:1/-1;' })}
+      ${panel({ title: 'Keyword groups', pad: true, body:
+        `<table><thead><tr><th>Group</th><th>Keywords (comma-separated)</th></tr></thead><tbody>${groupRows}</tbody></table>
+        <form class="inline" onsubmit="return DMU.addGroup(event)">
+          <input name="name" placeholder="New group name" required>
+          <input name="keywords" placeholder="keyword, keyword" size="40">
+          <button>Add group</button>
+        </form>` })}
+      ${panel({ title: 'Professional bodies', pad: true, body:
+        `<table><thead><tr><th>Body</th><th>Mappings</th></tr></thead><tbody>${bodyRows}</tbody></table>` })}
+      ${panel({ title: 'Fetch log', pad: true, style: 'grid-column:1/-1;', body:
+        `<table><thead><tr><th>Source</th><th>Last run</th><th>Fetched</th><th>New</th><th>Error</th><th></th></tr></thead>
+        <tbody>${logRows}</tbody></table>` })}
+      ${panel({ title: 'DMU context (drafting)', pad: true, style: 'grid-column:1/-1;', body:
+        `<table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>${ctxRows}</tbody></table>
+        <form class="inline" onsubmit="return DMU.addContext(event)">
+          <input name="key" placeholder="key" required><input name="value" placeholder="value" size="50">
+          <button>Add</button></form>` })}
+    </div>`;
 
   res.send(layout({ title: 'Admin', body, active: '/admin' }));
 });
