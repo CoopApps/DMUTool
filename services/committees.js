@@ -7,7 +7,7 @@
  */
 
 const { getJson, sleep } = require('../lib/http');
-const { matchText } = require('../lib/keywords');
+const { matchText, allKeywords } = require('../lib/keywords');
 const { workingDaysUntil } = require('../lib/parliament');
 const { db, run, logFetch } = require('../db/database');
 const matcher = require('./matcher');
@@ -21,32 +21,28 @@ function snippet(text, n = 400) {
 }
 
 async function fetchOpenInquiries() {
-  // CommitteeBusiness items, newest first. We keep only those currently open for
-  // written submissions (openSubmissionPeriods non-empty) — i.e. live calls for
-  // evidence DMU can respond to. Stop early once we're past the recent window.
-  const out = [];
-  const take = 30;
-  for (let skip = 0; skip < 600; skip += take) {
-    const url = `${BASE}/api/CommitteeBusiness?take=${take}&skip=${skip}&OrderBy=DateOpenedDescending`;
+  // The API ignores OrderBy, so enumerate by keyword search instead — this is
+  // both reliable and inherently DMU-relevant. Keep only committee business
+  // currently open for written submissions (a live call for evidence).
+  const seen = new Map();
+  for (const kw of allKeywords()) {
+    const url = `${BASE}/api/CommitteeBusiness?take=20&SearchTerm=${encodeURIComponent(kw)}`;
     let data;
-    for (let attempt = 0; ; attempt++) {
-      try { data = await getJson(url); break; }
-      catch (e) { if (attempt >= 2) throw e; await sleep(3000); }
-    }
-    const items = data.items || data.Items || [];
-    if (!items.length) break;
-    const open = items.filter((it) => {
+    try {
+      for (let attempt = 0; ; attempt++) {
+        try { data = await getJson(url); break; }
+        catch (e) { if (attempt >= 2) throw e; await sleep(2000); }
+      }
+    } catch { await sleep(500); continue; }
+    for (const it of data.items || data.Items || []) {
       const v = it.value || it;
-      return Array.isArray(v.openSubmissionPeriods) && v.openSubmissionPeriods.length > 0;
-    });
-    out.push(...open);
-    // Once the newest-first page is entirely closed AND old, we can stop.
-    const oldestOnPage = items[items.length - 1].value || items[items.length - 1];
-    const oldOpen = oldestOnPage.openDate ? new Date(oldestOnPage.openDate).getTime() : 0;
-    if (skip >= 120 && oldOpen && oldOpen < Date.now() - 365 * 24 * 3600 * 1000 && !open.length) break;
-    await sleep(800);
+      if (Array.isArray(v.openSubmissionPeriods) && v.openSubmissionPeriods.length > 0) {
+        seen.set(String(v.id), v);   // dedupe across keywords
+      }
+    }
+    await sleep(700);
   }
-  return out;
+  return [...seen.values()];
 }
 
 /** Earliest closing date among an item's open submission periods. */
