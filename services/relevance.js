@@ -38,7 +38,7 @@ function dmuExpertise() {
 
 /** DMU's institutional-interest profile (editable in Admin → DMU context). */
 function interestsProfile() {
-  const keys = ['mission_group', 'institutional_interests', 'key_research', 'sdg11_hub'];
+  const keys = ['mission_group', 'institutional_interests', 'key_research', 'sdg11_hub', 'policy_unit'];
   return keys.map((k) => {
     const r = get('SELECT value FROM dmu_context WHERE key = ?', [k]);
     return r ? `- ${r.value}` : null;

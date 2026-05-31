@@ -46,6 +46,7 @@ const PROFESSIONAL_BODIES = [
 
 // name, source_type, feed_url, scrape_url, scrape_selectors, refresh
 const EXTERNAL_SOURCES = [
+  ['DMU Policy Unit', 'he_news', 'https://policy.dmu.ac.uk/feed/', null, null, 'daily'],
   ['Times Higher Education', 'he_news', 'https://www.timeshighereducation.com/news/rss.xml', null, null, 'daily'],
   ['HEPI', 'he_news', 'https://hepi.ac.uk/category/blog/feed', null, null, 'daily'],
   ['Office for Students', 'he_news', 'https://www.officeforstudents.org.uk/news-blog-and-events/news-and-blog/feed/', null, null, 'daily'],
@@ -69,6 +70,7 @@ const DMU_CONTEXT = [
   ['institutional_voice', 'Professional, direct, evidence-grounded, not promotional.'],
   ['mission_group', 'DMU is a member of University Alliance — the mission group for professional and technical universities. Its institutional interests align with UA advocacy on applied research, technical and professional education, skills, degree apprenticeships, and the civic/regional growth agenda.'],
   ['institutional_interests', 'DMU\'s interests are not only where it has academic expertise but where it is affected as an institution: higher education funding and tuition fees; OfS regulation and conditions of registration; international student recruitment and visa/immigration policy (a major revenue and operational concern); research funding (UKRI, Horizon); degree apprenticeships and skills policy; the Lifelong Learning Entitlement; staff pay and pensions (USS); free speech duties; quality and standards; and DMU\'s civic role in Leicester and the East Midlands.'],
+  ['policy_unit', 'The DMU Policy Unit is DMU\'s academic-led network mobilising research for policy impact, building on DMU\'s UN SDG 11 Hub (sustainable cities and communities) chairmanship. Its priority thematic areas are: post-war recovery and reconstruction; police innovation and solution-oriented policing; and equitable education. It engages Parliament (including Early Day Motions), UK government departments and international/UN policy networks. Items touching these themes are squarely in DMU\'s policy-impact remit.'],
   ['new_events_count', '0'],
 ];
 
