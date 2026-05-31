@@ -46,7 +46,6 @@ const PROFESSIONAL_BODIES = [
 
 // name, source_type, feed_url, scrape_url, scrape_selectors, refresh
 const EXTERNAL_SOURCES = [
-  ['DMU Policy Unit', 'he_news', 'https://policy.dmu.ac.uk/feed/', null, null, 'daily'],
   ['Times Higher Education', 'he_news', 'https://www.timeshighereducation.com/news/rss.xml', null, null, 'daily'],
   ['HEPI', 'he_news', 'https://hepi.ac.uk/category/blog/feed', null, null, 'daily'],
   ['Office for Students', 'he_news', 'https://www.officeforstudents.org.uk/news-blog-and-events/news-and-blog/feed/', null, null, 'daily'],
