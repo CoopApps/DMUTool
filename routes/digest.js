@@ -7,163 +7,118 @@ const { layout, esc, badge } = require('../lib/render');
 const matcher = require('../services/matcher');
 
 function lastUpdated() {
-  const rows = all(`SELECT source, MAX(completed_at) AS at FROM fetch_log GROUP BY source`);
-  return rows.map((r) => `${esc(r.source)}: ${r.at ? esc(r.at.slice(0, 16).replace('T', ' ')) : '—'}`).join(' · ');
+  const r = get(`SELECT MAX(completed_at) AS at FROM fetch_log`);
+  return r && r.at ? esc(r.at.slice(0, 16).replace('T', ' ')) : '—';
 }
 
-function matchSidebar(itemId, itemType) {
-  const { academics, courses, events } = matcher.getMatches(itemId, itemType, { limit: 3 });
-  let html = '';
-  if (academics.length) {
-    html += '<div class="matches"><strong>Matched academics</strong><ul>' +
-      academics.map((a) => `<li><b>${esc(a.name)}</b> <span class="dept">${esc(a.department || '')}</span>
-        <span class="vote"><button title="Good match" onclick="DMU.matchVote(${a.id},'${itemType}',${itemId},1,this)">👍</button><button title="Poor match" onclick="DMU.matchVote(${a.id},'${itemType}',${itemId},-1,this)">👎</button></span><br>
-        <span class="why">${esc(a.explanation || '')}</span></li>`).join('') +
-      '</ul></div>';
-  }
-  if (courses.length) {
-    html += '<div class="matches courses"><strong>Relevant courses</strong><ul>' +
-      courses.map((c) => `<li><a href="${esc(c.url || '#')}">${esc(c.title)}</a></li>`).join('') +
-      '</ul></div>';
-  }
-  if (events && events.length) {
-    html += '<div class="matches events"><strong>DMU events (context)</strong><ul>' +
-      events.map((e) => `<li><a href="${esc(e.url || '#')}">${esc(e.title)}</a>
-        ${e.date ? `<span class="dept">${esc((e.date || '').slice(0, 10))}</span>` : ''}</li>`).join('') +
-      '</ul></div>';
-  }
-  return html;
-}
+// Procedural / set-piece debates that flood the feed and aren't actionable.
+const NOISE = /(king'?s speech|queen'?s speech|debate on the address|business of the house|business without debate|points? of order|point of order|prayers|oral answers to questions|speaker'?s statement|royal assent|petition|adjournment|bill presented|deferred division|division)\b/i;
 
-function flagState(type, id) {
-  return get('SELECT flagged, ignored FROM item_flags WHERE item_type=? AND item_id=?', [type, id]) || {};
-}
-function flagControls(type, id, f) {
-  return `<span class="flagbar">
-    <button class="${f.flagged ? 'on' : ''}" title="Flag for VC" onclick="DMU.flag('${type}',${id},'flagged',this)">★ Flag</button>
-    <button title="Ignore" onclick="DMU.flag('${type}',${id},'ignored',this)">✕ Ignore</button>
-  </span>`;
-}
-
-function itemCard(it) {
-  const f = flagState('parliamentary_item', it.id);
-  const flagged = f.flagged ? '<span class="new-badge" style="background:#c97a00">★ Flagged</span>' : '';
-  const isNew = it.is_new ? '<span class="new-badge">New</span>' : '';
-  const member = it.member_name ? ` · ${esc(it.member_name)}${it.party ? ` (${esc(it.party)})` : ''}` : '';
-  return `<article class="card" data-id="${it.id}" data-type="parliamentary_item">
-    <div class="card-head">${badge(it.source)} <span class="date">${esc((it.date || '').slice(0, 10))}</span>${member} ${expertisePill('parliamentary_item', it.id)} ${isNew} ${flagged}</div>
-    <h3><a href="/item/parliamentary_item/${it.id}">${esc(it.title || '(untitled)')}</a></h3>
-    <p class="snippet">${esc((it.snippet || '').slice(0, 150))}</p>
-    <div class="card-body">${matchSidebar(it.id, 'parliamentary_item')}</div>
-    <div class="card-actions">
-      <button onclick="DMU.openDraft(${it.id},'parliamentary_item')">Draft response</button>
-      <button onclick="DMU.findExperts(${it.id},'parliamentary_item',this)">Find experts</button>
-      ${flagControls('parliamentary_item', it.id, f)}
-    </div>
-  </article>`;
+function isNoise(title) {
+  return !title || NOISE.test(title);
 }
 
 function relevancePill(level) {
   if (!level || level === 'medium') return '';
   const cls = { high: 'green', low: 'grey', none: 'grey' }[level] || 'grey';
-  return `<span class="wdr ${cls}" title="overall DMU interest">${esc(level)} interest</span>`;
+  return `<span class="tag ${cls}" title="overall DMU interest">${esc(level)} interest</span>`;
 }
-// Expertise is one facet of DMU's interest — shown distinctly so the officer
-// sees the makeup, even though it already feeds the overall interest score.
 function expertisePill(type, id) {
   const s = matcher.expertiseSignal(id, type);
-  if (s.strong) return '<span class="wdr green" title="academic expertise facet">★ strong DMU expertise</span>';
-  if (s.count > 0) return `<span class="wdr amber" title="academic expertise facet">${s.count} expert match${s.count === 1 ? '' : 'es'}</span>`;
+  if (s.strong) return '<span class="tag green" title="strong DMU expertise">★ expertise</span>';
+  if (s.count > 0) return `<span class="tag amber" title="${s.count} expert matches">${s.count} experts</span>`;
   return '';
+}
+function flagState(type, id) {
+  return get('SELECT flagged, ignored FROM item_flags WHERE item_type=? AND item_id=?', [type, id]) || {};
 }
 function interestOk(row) {
   return !row.relevance_checked || ['high', 'medium'].includes(row.relevance_level);
 }
 
-function committeeCard(q) {
-  const isNew = q.is_new ? '<span class="new-badge">New</span>' : '';
-  const wdr = q.working_days_remaining != null
-    ? `<span class="date">${q.working_days_remaining} working days to deadline</span>` : '';
-  return `<article class="card" data-id="${q.id}" data-type="committee_inquiry">
-    <div class="card-head">${badge('Committee')} <span class="date">${esc((q.date_opened || '').slice(0, 10))}</span> · ${esc(q.committee_name || '')} ${wdr} ${relevancePill(q.relevance_level)} ${expertisePill('committee_inquiry', q.id)} ${isNew}</div>
-    <h3><a href="/item/committee_inquiry/${q.id}">${esc(q.inquiry_title || '(untitled)')}</a></h3>
-    <p class="snippet">${esc((q.summary || '').slice(0, 150))}</p>
-    <div class="card-body">${matchSidebar(q.id, 'committee_inquiry')}</div>
-    <div class="card-actions">
-      <button onclick="DMU.openDraft(${q.id},'committee_inquiry','committee_submission')">Draft response</button>
-      <button onclick="DMU.findExperts(${q.id},'committee_inquiry',this)">Find experts</button>
-      ${flagControls('committee_inquiry', q.id, flagState('committee_inquiry', q.id))}
-    </div>
-  </article>`;
+/** A dense one-line row (the new default look). */
+function row(it) {
+  const type = it._kind === 'committee' ? 'committee_inquiry' : 'parliamentary_item';
+  const f = flagState(type, it.id);
+  const title = it._kind === 'committee' ? it.inquiry_title : it.title;
+  const src = it._kind === 'committee' ? 'Committee' : it.source;
+  const date = (it._sort || '').slice(0, 10);
+  const who = it.member_name ? `${esc(it.member_name)}${it.party ? ' (' + esc(it.party) + ')' : ''}` : (it.committee_name ? esc(it.committee_name) : '');
+  const count = it._count > 1 ? `<span class="muted">×${it._count}</span>` : '';
+  const flagged = f.flagged ? '<span class="tag amber">★</span>' : '';
+  const newb = it.is_new ? '<span class="tag pink">new</span>' : '';
+  return `<a class="drow" href="/item/${type}/${it.id}">
+    <span class="drow-meta">${badge(src)} <span class="muted">${esc(date)}</span></span>
+    <span class="drow-title">${esc(title || '(untitled)')} ${count}</span>
+    <span class="drow-tags">${who ? `<span class="muted">${who}</span>` : ''} ${relevancePill(it.relevance_level)} ${expertisePill(type, it.id)} ${newb} ${flagged}</span>
+  </a>`;
 }
 
 router.get('/', (req, res) => {
   ageNewFlags();
-  const showAll = req.query.show === 'all'; // include low/none-relevance items
-  // New committee inquiry banner(s)
-  const newInquiries = all(
-    `SELECT id, inquiry_title, working_days_remaining FROM committee_inquiries
-     WHERE is_new = 1 ORDER BY deadline ASC LIMIT 5`
-  );
-  const banner = newInquiries.map((q) =>
-    `<div class="banner">New inquiry — <b>${esc(q.inquiry_title)}</b> —
-     ${q.working_days_remaining != null ? `${q.working_days_remaining} working days to deadline` : 'deadline TBC'}
-     <a href="/committees">View committee tracker →</a></div>`
-  ).join('');
+  const showAll = req.query.show === 'all';
 
-  // Parliamentary items + committee inquiries from last 7 days (or flagged new),
-  // grouped by keyword group and interleaved by date.
   const notIgnored = (type, tbl) => showAll ? '' :
     `AND NOT EXISTS (SELECT 1 FROM item_flags f WHERE f.item_type='${type}' AND f.item_id=${tbl}.id AND f.ignored=1)`;
-  const items = all(
-    `SELECT * FROM parliamentary_items
-     WHERE (date >= date('now','-7 days') OR is_new = 1)
-       ${notIgnored('parliamentary_item', 'parliamentary_items')}`
-  ).map((it) => ({ ...it, _kind: 'parliamentary', _sort: it.date || '' }));
 
-  // Gated on overall DMU interest (which already weighs institutional impact,
-  // sector/UA alignment AND academic expertise as co-equal facets). Unchecked
-  // items still show while awaiting background scoring; ?show=all reveals all.
+  // Parliamentary items, last 14 days. Collapse repeated debate contributions:
+  // keep the most recent row per (keyword_group, title), with a contribution count.
+  const rawItems = all(
+    `SELECT *, COUNT(*) OVER (PARTITION BY keyword_group, title) AS _count,
+            ROW_NUMBER() OVER (PARTITION BY keyword_group, title ORDER BY date DESC, id DESC) AS _rn
+     FROM parliamentary_items
+     WHERE (date >= date('now','-14 days') OR is_new = 1)
+       ${notIgnored('parliamentary_item', 'parliamentary_items')}`
+  ).filter((it) => it._rn === 1 && !isNoise(it.title))
+   .map((it) => ({ ...it, _kind: 'parliamentary', _sort: it.date || '' }));
+
   const inquiries = all(
     `SELECT * FROM committee_inquiries
      WHERE evidence_status = 'AcceptingEvidence'
-       AND (COALESCE(date_opened, created_at) >= date('now','-7 days') OR is_new = 1)
+       AND (COALESCE(date_opened, created_at) >= date('now','-30 days') OR is_new = 1)
        ${notIgnored('committee_inquiry', 'committee_inquiries')}`
   ).filter((q) => showAll || interestOk(q))
-   .map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '' }));
+   .map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '', title: q.inquiry_title }));
 
   const groups = all('SELECT name FROM keyword_groups ORDER BY name');
-
   const byGroup = {};
-  for (const row of [...items, ...inquiries]) {
-    (byGroup[row.keyword_group] = byGroup[row.keyword_group] || []).push(row);
+  for (const r of [...inquiries, ...rawItems]) {
+    if (!r.keyword_group) continue;
+    (byGroup[r.keyword_group] = byGroup[r.keyword_group] || []).push(r);
   }
 
-  const sections = groups.map((g) => {
-    const list = (byGroup[g.name] || []).sort((a, b) => (b._sort || '').localeCompare(a._sort || ''));
-    const collapsed = list.length === 0 ? ' collapsed' : '';
-    const cards = list.length
-      ? list.map((row) => (row._kind === 'committee' ? committeeCard(row) : itemCard(row))).join('')
-      : '<p class="empty">No items in the last 7 days.</p>';
-    return `<section class="group${collapsed}">
-      <h2 onclick="this.parentElement.classList.toggle('collapsed')">${esc(g.name)} <span class="count">${list.length}</span></h2>
-      <div class="group-body">${cards}</div>
+  // Sort groups by activity (most items first); collapse empty + low-priority by default.
+  const ordered = groups
+    .map((g) => ({ name: g.name, list: (byGroup[g.name] || []).sort((a, b) => (b._sort || '').localeCompare(a._sort || '')) }))
+    .sort((a, b) => b.list.length - a.list.length);
+
+  const jumpNav = `<nav class="topic-jump">${ordered.map((g) =>
+    `<a href="#g-${g.name.replace(/\W/g, '')}" class="${g.list.length ? '' : 'muted'}">${esc(g.name)} <b>${g.list.length}</b></a>`).join('')}</nav>`;
+
+  const sections = ordered.map((g) => {
+    const id = g.name.replace(/\W/g, '');
+    const open = g.list.length > 0 && g.list.length <= 60; // keep huge groups collapsed
+    const rows = g.list.length ? g.list.map(row).join('') : '<p class="empty">Nothing in the last 14 days.</p>';
+    return `<section class="group ${open ? '' : 'collapsed'}" id="g-${id}">
+      <h2 onclick="this.parentElement.classList.toggle('collapsed')">${esc(g.name)} <span class="count">${g.list.length}</span></h2>
+      <div class="group-body drows">${rows}</div>
     </section>`;
   }).join('');
-
-  const expertBox = `<form class="expert-box" onsubmit="return DMU.quickExpert(event)">
-    <input type="text" id="quick-expert" placeholder="Who at DMU works on this?">
-    <button>Search</button>
-  </form>`;
 
   const relToggle = `<div class="filters">
     <a href="/digest" class="${showAll ? '' : 'active'}">Relevant only</a>
     <a href="/digest?show=all" class="${showAll ? 'active' : ''}">Show all</a>
+    <a href="/search">Search everything →</a>
   </div>`;
 
-  const body = `<div class="page-head"><h1>Daily digest</h1>${expertBox}</div>
-    ${relToggle}${banner}${sections}
-    <footer class="updated">Last updated — ${lastUpdated()}</footer>`;
+  const body = `<div class="page-head"><h1>Daily digest</h1>
+    <form class="expert-box" onsubmit="return DMU.quickExpert(event)">
+      <input type="text" id="quick-expert" placeholder="Who at DMU works on…?"><button>Find</button>
+    </form></div>
+    ${relToggle}
+    ${jumpNav}
+    ${sections}
+    <footer class="updated">Last updated ${lastUpdated()} · procedural debates (King's Speech, points of order, etc.) hidden · repeated contributions collapsed</footer>`;
 
   res.send(layout({ title: 'Digest', body, active: '/digest' }));
 });

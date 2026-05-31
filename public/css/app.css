@@ -40,6 +40,30 @@ a { color: var(--dmu); }
 .intel li { padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .intel li:last-child { border-bottom: 0; }
 .intel-rationale { background: #fff8e6; border-left: 3px solid var(--amber); padding: 8px 12px; border-radius: 4px; }
+
+/* Dense digest rows */
+.topic-jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 18px; position: sticky; top: 52px;
+  background: var(--bg); padding: 8px 0; z-index: 10; }
+.topic-jump a { font-size: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 14px;
+  background: #fff; text-decoration: none; color: var(--text); }
+.topic-jump a b { color: var(--dmu); }
+.topic-jump a.muted { opacity: .45; }
+.group { margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: #fff; overflow: hidden; }
+.group > h2 { font-size: 15px; margin: 0; padding: 10px 14px; cursor: pointer; background: #f6f7f9;
+  display: flex; justify-content: space-between; align-items: center; }
+.group > h2 .count { background: var(--dmu); color: #fff; border-radius: 10px; font-size: 12px; padding: 0 8px; }
+.group.collapsed .group-body { display: none; }
+.drows { display: flex; flex-direction: column; }
+.drow { display: grid; grid-template-columns: 150px 1fr auto; gap: 10px; align-items: center;
+  padding: 8px 14px; border-top: 1px solid var(--line); text-decoration: none; color: var(--text); font-size: 14px; }
+.drow:hover { background: #f3f6fb; }
+.drow-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drow-tags { display: flex; gap: 5px; align-items: center; white-space: nowrap; }
+.muted { color: var(--muted); font-weight: 400; font-size: 12px; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+.tag.green { background: #e3f4ea; color: var(--green); } .tag.amber { background: #fdf0db; color: var(--amber); }
+.tag.grey { background: #eee; color: #666; } .tag.pink { background: #fde6f1; color: var(--dmu-accent); }
+@media (max-width: 700px) { .drow { grid-template-columns: 1fr; gap: 2px; } .drow-meta, .drow-tags { font-size: 11px; } }
 @media (max-width: 800px) { .reader-grid { grid-template-columns: 1fr; } }
 .badge { background: var(--dmu-accent); color: #fff; border-radius: 10px; font-size: 11px;
   padding: 1px 6px; margin-left: 4px; }
