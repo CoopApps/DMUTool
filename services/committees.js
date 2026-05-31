@@ -21,27 +21,43 @@ function snippet(text, n = 400) {
 }
 
 async function fetchOpenInquiries() {
-  // Inquiries accepting evidence. The API paginates with take/skip.
+  // CommitteeBusiness items, newest first. We keep only those currently open for
+  // written submissions (openSubmissionPeriods non-empty) — i.e. live calls for
+  // evidence DMU can respond to. Stop early once we're past the recent window.
   const out = [];
-  let skip = 0;
   const take = 30;
-  for (let page = 0; page < 20; page++) {
-    const url = `${BASE}/api/Inquiries?Status=Open&take=${take}&skip=${skip}`;
+  for (let skip = 0; skip < 600; skip += take) {
+    const url = `${BASE}/api/CommitteeBusiness?take=${take}&skip=${skip}&OrderBy=DateOpenedDescending`;
     let data;
     for (let attempt = 0; ; attempt++) {
       try { data = await getJson(url); break; }
-      catch (e) {
-        if (attempt >= 2) throw e;       // give transient timeouts two retries
-        await sleep(3000);
-      }
+      catch (e) { if (attempt >= 2) throw e; await sleep(3000); }
     }
     const items = data.items || data.Items || [];
-    out.push(...items);
-    if (items.length < take) break;
-    skip += take;
-    await sleep(1000);
+    if (!items.length) break;
+    const open = items.filter((it) => {
+      const v = it.value || it;
+      return Array.isArray(v.openSubmissionPeriods) && v.openSubmissionPeriods.length > 0;
+    });
+    out.push(...open);
+    // Once the newest-first page is entirely closed AND old, we can stop.
+    const oldestOnPage = items[items.length - 1].value || items[items.length - 1];
+    const oldOpen = oldestOnPage.openDate ? new Date(oldestOnPage.openDate).getTime() : 0;
+    if (skip >= 120 && oldOpen && oldOpen < Date.now() - 365 * 24 * 3600 * 1000 && !open.length) break;
+    await sleep(800);
   }
   return out;
+}
+
+/** Earliest closing date among an item's open submission periods. */
+function submissionDeadline(v) {
+  const ends = (v.openSubmissionPeriods || [])
+    .map((p) => p.endDate || p.closeDate || p.end)
+    .filter(Boolean)
+    .map((d) => new Date(d))
+    .filter((d) => !isNaN(d));
+  if (!ends.length) return null;
+  return new Date(Math.min(...ends.map((d) => d.getTime()))).toISOString();
 }
 
 async function run_() {
@@ -55,19 +71,19 @@ async function run_() {
       const v = raw.value || raw;
       fetched += 1;
 
-      // Only those accepting written evidence.
-      const status = v.evidenceStatus || v.status || '';
-      const accepting = /accept/i.test(status) || (v.submissions && v.submissions.open);
-      const deadline = v.evidenceCloseDate || v.closeDate || v.deadline || null;
+      // Live call for evidence: must have an open submission period.
+      const accepting = Array.isArray(v.openSubmissionPeriods) && v.openSubmissionPeriods.length > 0;
+      const deadline = submissionDeadline(v);
       const opened = v.openDate || v.dateOpened || v.startDate || null;
       const extId = String(v.id);
-      const title = v.name || v.title || '';
-      const committee = (v.committee && (v.committee.name)) ||
-        (v.committees && v.committees[0] && v.committees[0].name) || v.committeeName || 'Committee';
-      const summary = snippet(v.summary || v.shortDescription || v.description || '');
+      const title = v.title || v.name || '';
+      const committee = (v.committees && v.committees[0] && v.committees[0].name)
+        || (v.committee && v.committee.name) || v.committeeName
+        || (v.type && v.type.name) || 'Committee';
+      const summary = snippet(v.description || v.summary || (v.type && v.type.description) || '');
       const url = `https://committees.parliament.uk/work/${v.id}/`;
 
-      if (!accepting && !deadline) continue;
+      if (!accepting) continue;
 
       const wdr = await workingDaysUntil(deadline);
       const isNew = opened ? new Date(opened).getTime() > dayAgo ? 1 : 0 : 0;
