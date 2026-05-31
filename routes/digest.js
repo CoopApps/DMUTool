@@ -52,7 +52,7 @@ function itemCard(it) {
   const member = it.member_name ? ` · ${esc(it.member_name)}${it.party ? ` (${esc(it.party)})` : ''}` : '';
   return `<article class="card" data-id="${it.id}" data-type="parliamentary_item">
     <div class="card-head">${badge(it.source)} <span class="date">${esc((it.date || '').slice(0, 10))}</span>${member} ${expertisePill('parliamentary_item', it.id)} ${isNew} ${flagged}</div>
-    <h3><a href="${esc(it.url || '#')}" target="_blank" rel="noopener">${esc(it.title || '(untitled)')}</a></h3>
+    <h3><a href="/item/parliamentary_item/${it.id}">${esc(it.title || '(untitled)')}</a></h3>
     <p class="snippet">${esc((it.snippet || '').slice(0, 150))}</p>
     <div class="card-body">${matchSidebar(it.id, 'parliamentary_item')}</div>
     <div class="card-actions">
@@ -86,7 +86,7 @@ function committeeCard(q) {
     ? `<span class="date">${q.working_days_remaining} working days to deadline</span>` : '';
   return `<article class="card" data-id="${q.id}" data-type="committee_inquiry">
     <div class="card-head">${badge('Committee')} <span class="date">${esc((q.date_opened || '').slice(0, 10))}</span> · ${esc(q.committee_name || '')} ${wdr} ${relevancePill(q.relevance_level)} ${expertisePill('committee_inquiry', q.id)} ${isNew}</div>
-    <h3><a href="${esc(q.url || '#')}" target="_blank" rel="noopener">${esc(q.inquiry_title || '(untitled)')}</a></h3>
+    <h3><a href="/item/committee_inquiry/${q.id}">${esc(q.inquiry_title || '(untitled)')}</a></h3>
     <p class="snippet">${esc((q.summary || '').slice(0, 150))}</p>
     <div class="card-body">${matchSidebar(q.id, 'committee_inquiry')}</div>
     <div class="card-actions">

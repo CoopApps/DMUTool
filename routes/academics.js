@@ -31,25 +31,73 @@ function search(q) {
 
 router.get('/', (req, res) => {
   const q = (req.query.q || '').trim();
-  const results = search(q);
-
+  const faculty = (req.query.faculty || '').trim();
+  const dept = (req.query.dept || '').trim();
   const srcLabel = { contensis: 'Contensis', xml: 'staff listing', legacy: 'legacy record' };
-  const cards = results.map((a) => `<article class="card academic">
-    <h3><a href="/academics/${a.id}">${esc(a.name)}</a> <span class="dept">${esc(a.title || '')} · ${esc(a.department || '')}</span>
+
+  const academicCard = (a) => `<article class="card academic">
+    <h3><a href="/academics/${a.id}">${esc(a.name)}</a> <span class="dept">${esc(a.title || '')}${a.department ? ' · ' + esc(a.department) : ''}</span>
       ${a.source && a.source !== 'contensis' ? `<span class="kw-pill">${esc(srcLabel[a.source] || a.source)}</span>` : ''}</h3>
     <p class="contact">${a.email ? `<a href="mailto:${esc(a.email)}">${esc(a.email)}</a>` : ''}
-      ${a.phone ? ` · ${esc(a.phone)}` : ''}
-      · <a href="/academics/${a.id}">View profile</a></p>
-    <p class="snippet">${a.excerpt || ''}</p>
-  </article>`).join('');
+      ${a.phone ? ` · ${esc(a.phone)}` : ''} · <a href="/academics/${a.id}">View profile</a></p>
+    ${a.excerpt ? `<p class="snippet">${a.excerpt}</p>` : ''}
+  </article>`;
+
+  const searchForm = `<form class="expert-box big" method="get">
+      <input name="q" value="${esc(q)}" placeholder="Search by topic, expertise, publication, name…">
+      <button>Search</button>
+    </form>`;
+
+  // --- Search mode ---
+  if (q) {
+    const results = search(q);
+    const body = `<div class="page-head"><h1>Academic expert finder</h1></div>
+      ${searchForm}
+      <p class="count">${results.length} results for “${esc(q)}” · <a href="/academics">browse by faculty</a></p>
+      ${results.map(academicCard).join('') || '<p class="empty">No matches.</p>'}`;
+    return res.send(layout({ title: 'Academics', body, active: '/academics' }));
+  }
+
+  // --- Browse a specific faculty/department ---
+  if (faculty || dept) {
+    const where = [], params = [];
+    if (faculty) { where.push('faculty = ?'); params.push(faculty); }
+    if (dept) { where.push('department = ?'); params.push(dept); }
+    const people = all(
+      `SELECT id, name, title, department, faculty, email, phone, source,
+              substr(profile_text,1,150) AS excerpt
+       FROM academics WHERE ${where.join(' AND ')} ORDER BY name LIMIT 500`, params);
+    const heading = dept || faculty;
+    const body = `<div class="page-head"><h1>${esc(heading)}</h1></div>
+      ${searchForm}
+      <p class="count"><a href="/academics">← all faculties</a> · ${people.length} academics</p>
+      ${people.map(academicCard).join('') || '<p class="empty">None found.</p>'}`;
+    return res.send(layout({ title: heading, body, active: '/academics' }));
+  }
+
+  // --- Default: browse-by-faculty directory ---
+  const faculties = all(
+    `SELECT COALESCE(NULLIF(faculty,''),'Other') AS faculty, COUNT(*) AS n
+     FROM academics GROUP BY COALESCE(NULLIF(faculty,''),'Other') ORDER BY n DESC`);
+  const total = all('SELECT COUNT(*) c FROM academics')[0].c;
+
+  const facultyBlocks = faculties.map((f) => {
+    const depts = all(
+      `SELECT COALESCE(NULLIF(department,''),'(unspecified)') AS dept, COUNT(*) AS n
+       FROM academics WHERE COALESCE(NULLIF(faculty,''),'Other') = ?
+       GROUP BY COALESCE(NULLIF(department,''),'(unspecified)') ORDER BY n DESC`, [f.faculty]);
+    const deptChips = depts.filter((d) => d.dept !== '(unspecified)').map((d) =>
+      `<a class="chip" href="/academics?dept=${encodeURIComponent(d.dept)}">${esc(d.dept)} <span class="n">${d.n}</span></a>`).join('');
+    return `<section class="card">
+      <h3><a href="/academics?faculty=${encodeURIComponent(f.faculty)}">${esc(f.faculty)}</a> <span class="dept">${f.n} academics</span></h3>
+      <div class="chips">${deptChips || '<span class="empty">browse all →</span>'}</div>
+    </section>`;
+  }).join('');
 
   const body = `<div class="page-head"><h1>Academic expert finder</h1></div>
-    <form class="expert-box big" method="get">
-      <input name="q" value="${esc(q)}" placeholder="Search profiles, publications, departments, courses…">
-      <button>Search</button>
-    </form>
-    ${q ? `<p class="count">${results.length} results for “${esc(q)}”</p>` : ''}
-    ${cards || (q ? '<p class="empty">No matches.</p>' : '<p class="empty">Enter a query above. Tip: try a topic, a journal name, or a department.</p>')}`;
+    ${searchForm}
+    <p class="count">${total} DMU academics across ${faculties.length} faculties — search above, or browse:</p>
+    ${facultyBlocks}`;
 
   res.send(layout({ title: 'Academics', body, active: '/academics' }));
 });
