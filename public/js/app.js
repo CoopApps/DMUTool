@@ -141,6 +141,14 @@
     } catch (e) { alert('Error: ' + e.message); }
     return false;
   }
+  async function reassess(btn) {
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Queuing…';
+    try {
+      const r = await postJSON('/api/admin/reassess', {});
+      alert(`${r.queued} item(s) queued for Claude re-assessment. They'll re-score in the background over the next few minutes.`);
+      location.reload();
+    } catch (e) { alert('Error: ' + e.message); btn.disabled = false; btn.textContent = orig; }
+  }
   async function clearPolicyUnit() {
     if (!confirm('Clear all Policy Unit role assignments?')) return;
     await handle(postJSON('/api/admin/policy-unit/clear', {}));
@@ -234,6 +242,6 @@
 
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, savePolicyUnit, clearPolicyUnit, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
+    addContext, savePolicyUnit, clearPolicyUnit, reassess, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
     saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

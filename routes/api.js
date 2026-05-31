@@ -224,6 +224,15 @@ router.post('/admin/policy-unit/clear', (req, res) => {
   res.json({ ok: true });
 });
 
+// Re-queue all heuristic-scored items for AI re-judgement (use after funding
+// the Claude key, so the spend upgrades the existing backlog, not just new items).
+router.post('/admin/reassess', (req, res) => {
+  const relevance = require('../services/relevance');
+  const claudeOn = require('../services/claude').isConfigured();
+  const queued = relevance.reassessHeuristic();
+  res.json({ ok: true, queued, claudeConfigured: claudeOn });
+});
+
 router.post('/admin/context', (req, res) => {
   const { key, value } = req.body;
   run(`INSERT INTO dmu_context (key, value, last_updated) VALUES (?,?,datetime('now'))

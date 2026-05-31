@@ -37,7 +37,7 @@ a { color: var(--dmu); }
   border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-lg); z-index: 60; padding: 6px;
   margin-top: 6px; opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.98);
   transform-origin: top left; transition: opacity var(--ease), transform var(--ease), visibility var(--ease); }
-.navgroup:hover > .navmenu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.navgroup:hover > .navmenu, .navgroup:focus-within > .navmenu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
 .navmenu::before { content: ""; position: absolute; top: -10px; left: 0; right: 0; height: 10px; }
 .navmenu a { display: flex; align-items: center; justify-content: space-between; color: var(--text);
   padding: 9px 12px; border-radius: 7px; box-shadow: none; font-size: 14px; }
@@ -303,4 +303,28 @@ mark { background: #ffe9a8; }
 @media (max-width: 800px) {
   .diary-grid { grid-template-columns: 1fr; }
   .mp-profile { grid-template-columns: 1fr; }
+}
+
+/* ---- Phone / small-tablet: keep the morning view usable on a handset ---- */
+@media (max-width: 760px) {
+  /* Topbar wraps; nav becomes a horizontal scroller, dropdowns open on tap. */
+  .topbar { flex-wrap: wrap; padding: 8px 12px; gap: 6px; }
+  .mainnav { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .navtop { padding: 12px 10px; white-space: nowrap; }
+  .navmenu { position: static; box-shadow: none; border: 0; padding: 0 0 4px 12px;
+    min-width: 0; opacity: 1; visibility: visible; transform: none; display: none; }
+  .navgroup:focus-within > .navmenu { display: block; }
+  .topsearch { width: 100%; }
+  .topsearch input { width: 100%; }
+  /* Dashboards scroll normally and stack to one column. */
+  body.dashmode { height: auto; overflow: auto; }
+  body.dashmode main { overflow: visible; }
+  .dashgrid { grid-template-columns: 1fr !important; grid-template-rows: none !important; }
+  .dashgrid .panel { max-height: none !important; }
+  .dash-kpis { grid-auto-flow: row !important; grid-template-columns: repeat(2, 1fr); }
+  .dash-head { flex-wrap: wrap; }
+  .dash-head .spacer { display: none; }
+  .panelgrid { grid-template-columns: 1fr; }
+  .sector-tabs { max-width: 100%; }
+  table { display: block; overflow-x: auto; white-space: nowrap; }
 }

@@ -154,4 +154,33 @@ function markUnscored(itemType, itemId) {
        relevance_score=COALESCE(relevance_score,0.5) WHERE id=?`, [itemId]);
 }
 
-module.exports = { enqueue, scoreItem, heuristicScore, markUnscored, TABLES };
+/** How many items were triaged by the free heuristic (awaiting an AI re-judge). */
+function heuristicCount() {
+  let n = 0;
+  for (const [type, map] of Object.entries(TABLES)) {
+    const r = get(`SELECT COUNT(*) c FROM ${map.table} WHERE relevance_rationale LIKE '[keyword match]%'`);
+    n += r ? r.c : 0;
+  }
+  return n;
+}
+
+/**
+ * Bridge from keyword-only mode to AI curation. Re-queues every item that was
+ * scored by the heuristic so that, once the Claude key is funded, the existing
+ * backlog gets properly re-judged (not just new items going forward). Returns
+ * the number re-queued. itemType filter optional.
+ */
+function reassessHeuristic() {
+  let queued = 0;
+  for (const [type, map] of Object.entries(TABLES)) {
+    const rows = all(`SELECT id FROM ${map.table} WHERE relevance_rationale LIKE '[keyword match]%'`);
+    for (const r of rows) {
+      run(`UPDATE ${map.table} SET relevance_checked=0 WHERE id=?`, [r.id]);
+      enqueue(type, r.id, 5, 'relevance');
+      queued += 1;
+    }
+  }
+  return queued;
+}
+
+module.exports = { enqueue, scoreItem, heuristicScore, markUnscored, heuristicCount, reassessHeuristic, TABLES };

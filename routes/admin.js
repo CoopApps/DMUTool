@@ -44,6 +44,8 @@ router.get('/', (req, res) => {
   const puMembers = all(
     `SELECT id, name, department, policy_unit_role FROM academics
      WHERE policy_unit_role IS NOT NULL ORDER BY policy_unit_role, name`);
+  const claudeOn = require('../services/claude').isConfigured();
+  const heuristicN = require('../services/relevance').heuristicCount();
 
   // ---- Academic directory coverage ----
   const cov = {
@@ -128,6 +130,14 @@ router.get('/', (req, res) => {
       <span class="pill">Background queue: ${queuePending} pending</span></div>
     <div class="panelgrid">
       ${panel({ title: 'Academic directory coverage', body: coverageBody, style: 'grid-column:1/-1;' })}
+      ${panel({ title: 'Relevance curation', pad: true, style: 'grid-column:1/-1;', body: `
+        <p class="why">Curation mode: <b>${claudeOn ? 'Claude AI judgement' : 'keyword-only heuristic'}</b>${claudeOn ? '' : ' — no API key set'}.
+          ${heuristicN} item${heuristicN === 1 ? '' : 's'} currently scored by the free keyword heuristic (labelled <span class="tag grey">keyword match</span>).</p>
+        ${claudeOn
+          ? `<p>Re-judge the ${heuristicN} keyword-scored item${heuristicN === 1 ? '' : 's'} with Claude so the backlog is upgraded to full AI curation.</p>
+             <button ${heuristicN ? '' : 'disabled'} onclick="DMU.reassess(this)">Re-assess ${heuristicN} item${heuristicN === 1 ? '' : 's'} with Claude</button>`
+          : `<p class="why">Add <code>ANTHROPIC_API_KEY</code> to enable AI curation. New items are then judged automatically; click here afterwards to re-assess the ${heuristicN} existing keyword-scored item${heuristicN === 1 ? '' : 's'}.</p>
+             <button disabled title="Set ANTHROPIC_API_KEY first">Re-assess with Claude (needs key)</button>`}` })}
       ${panel({ title: 'DMU Policy Unit members', pad: true, style: 'grid-column:1/-1;', body: policyUnitPanel(puMembers) })}
       ${panel({ title: 'Keyword groups', pad: true, body:
         `<table><thead><tr><th>Group</th><th>Keywords (comma-separated)</th></tr></thead><tbody>${groupRows}</tbody></table>

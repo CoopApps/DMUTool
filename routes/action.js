@@ -66,8 +66,10 @@ router.get('/', async (req, res) => {
      ORDER BY source`);
   const queueBacklog = get(`SELECT COUNT(*) c FROM task_queue WHERE status='pending'`).c;
 
+  const heuristicN = require('../services/relevance').heuristicCount();
   const health = [];
   if (!claudeOn) health.push({ cls: 'info', html: '<b>Keyword-only curation.</b> No Claude API key set — relevance is ranked from topic match + DMU expertise, not the AI judgement. Items are labelled <span class="tag grey">keyword match</span>.' });
+  else if (heuristicN > 0) health.push({ cls: 'info', html: `<b>${heuristicN} item${heuristicN === 1 ? '' : 's'} awaiting AI re-judgement.</b> Scored by the keyword heuristic before Claude was enabled — <a href="/admin">re-assess in Admin</a> to upgrade them.` });
   if (hoursSinceFetch == null) health.push({ cls: 'warn', html: '<b>No successful data fetch on record.</b> Run sources from <a href="/admin">Admin</a>.' });
   else if (hoursSinceFetch > 26) health.push({ cls: 'warn', html: `<b>Data may be stale</b> — last successful fetch was ${Math.round(hoursSinceFetch)}h ago. Check <a href="/admin">Admin</a>.` });
   if (failing.length) health.push({ cls: 'warn', html: `<b>${failing.length} source${failing.length === 1 ? '' : 's'} failing:</b> ${esc(failing.slice(0, 6).map((f) => f.source).join(', '))}. See <a href="/admin">Admin</a>.` });
