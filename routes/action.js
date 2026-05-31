@@ -10,7 +10,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get, ageNewFlags } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 const { workingDaysUntil, sittingDaysBefore } = require('../lib/parliament');
 
 const HORIZON = 15; // working days
@@ -88,23 +88,93 @@ router.get('/', async (req, res) => {
   const peerItems = get(`SELECT COUNT(*) c FROM ua_activity WHERE date >= date('now','-7 days')`).c;
   const peerActive = get(`SELECT COUNT(DISTINCT member) c FROM ua_activity WHERE date >= date('now','-7 days')`).c;
 
-  const stat = (n, label, href) => `<a class="stat" href="${href}"><span class="num">${n}</span>${esc(label)}</a>`;
+  // 6) Curated priorities — top items the gate passed, most urgent/new first.
+  const priorities = all(
+    `SELECT id, title, keyword_group, relevance_level, date, 'parliamentary_item' AS kind
+       FROM parliamentary_items
+      WHERE relevance_level IN ('high','medium') AND date >= date('now','-14 days')
+      ORDER BY (relevance_level='high') DESC, date DESC LIMIT 30`
+  );
 
-  const body = `<div class="page-head"><h1>This week</h1>
-    <div>
-      <a class="csvbtn" href="/api/calendar.ics">Export deadlines (.ics)</a>
-      <button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button>
-    </div></div>
+  // 7) This week in Parliament (diary, keyword-matched first).
+  const diaryWk = all(
+    `SELECT title, house, date, keyword_match FROM diary_events
+      WHERE date BETWEEN date('now') AND date('now','+7 days')
+      ORDER BY keyword_match DESC, date ASC LIMIT 40`
+  );
 
-    <div class="stats">
-      ${stat(newParl, 'new parliamentary', '/digest')}
-      ${stat(newInq, 'new inquiries', '/committees')}
-      ${stat(newCons, 'new consultations', '/consultations')}
-      ${stat(newTT, 'new think-tank reports', '/sector?tab=think_tank')}
-      ${stat(fuDue, `follow-ups due${fuOverdue ? ` (${fuOverdue} overdue)` : ''}`, '/engagement')}
-      ${stat(peerItems, `UA peer items${peerActive ? ` (${peerActive} peers)` : ''}`, '/alliance')}
+  // 8) Sector headlines — recent relevant think-tank / sector reports.
+  const sector = all(
+    `SELECT id, title, source_name, date FROM external_items
+      WHERE source_type IN ('think_tank','briefing') AND relevance_level IN ('high','medium')
+      ORDER BY COALESCE(date, created_at) DESC LIMIT 20`
+  );
+
+  const kpi = (n, label, href, cls = '') =>
+    `<a class="kpi ${cls}" href="${href}"><span class="num">${n}</span><span class="lbl">${esc(label)}</span></a>`;
+
+  const deadlineList = deadlines.length ? `<div class="plist">${deadlines.map((d) => `
+    <a href="${esc(d.url || '#')}" target="_blank" rel="noopener">
+      <span class="wdr ${ragClass(d.wdr)}">${d.wdr}wd</span>
+      <span class="t">${esc(d.title)}<br><span class="muted">${esc(d.org || '')} · ${d.kind === 'committee_inquiry' ? 'Committee' : 'Consultation'}</span></span>
+      <button onclick="event.preventDefault();DMU.openDraft(${d.id},'${d.kind}','committee_submission')">Draft</button>
+    </a>`).join('')}</div>` : '<p class="empty">No relevant deadlines in the next 15 working days.</p>';
+
+  const priorityList = priorities.length ? `<div class="plist">${priorities.map((p) => `
+    <a href="/item/${p.kind}/${p.id}">
+      <span class="tag ${p.relevance_level === 'high' ? 'green' : 'amber'}">${p.relevance_level}</span>
+      <span class="t">${esc(p.title)}<br><span class="muted">${esc(p.keyword_group || '')} · ${esc((p.date || '').slice(0, 10))}</span></span>
+      <span></span>
+    </a>`).join('')}</div>` : '<p class="empty">No curated priorities — items are still being assessed, or none meet the threshold.</p>';
+
+  const diaryList = diaryWk.length ? `<div class="plist">${diaryWk.map((e) => `
+    <span class="pli">
+      <span class="when muted">${esc((e.date || '').slice(5, 10))}</span>
+      <span class="t">${e.keyword_match ? '★ ' : ''}${esc(e.title)}</span>
+      <span class="muted">${esc(e.house || '')}</span>
+    </span>`).join('')}</div>` : '<p class="empty">No sitting events scheduled this week.</p>';
+
+  const oralList = oralRows.length
+    ? `<table><thead><tr><th>Left</th><th>Department</th><th>Submit by</th></tr></thead><tbody>${
+        oralRows.join('').replace(/<td>Session [^<]*<\/td>/g, '')}</tbody></table>`
+    : '<p class="empty">No upcoming oral-question sessions for the key departments.</p>';
+
+  const sectorList = sector.length ? `<div class="plist">${sector.map((s) => `
+    <a href="/item/external_item/${s.id}">
+      <span class="when muted">${esc((s.date || '').slice(0, 10))}</span>
+      <span class="t">${esc(s.title)}</span>
+      <span class="muted">${esc(s.source_name || '')}</span>
+    </a>`).join('')}</div>` : '<p class="empty">No recent relevant sector reports.</p>';
+
+  const peerList = `<div class="panel-body pad"><p>${peerItems} University Alliance peer items in the last 7 days, across ${peerActive} peers.</p>
+    <p>${fuDue} engagement follow-up${fuDue === 1 ? '' : 's'} due${fuOverdue ? ` — <b style="color:var(--red)">${fuOverdue} overdue</b>` : ''}.</p>
+    <p><a href="/alliance">UA peers →</a> · <a href="/engagement">Engagement →</a></p></div>`;
+
+  const grid = `<div class="dashgrid" style="grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:1fr 1fr;">
+    ${panel({ title: 'Response deadlines', count: deadlines.length,
+      actions: '<a class="csvbtn" href="/api/calendar.ics">.ics</a>', body: deadlineList })}
+    ${panel({ title: 'Priorities — curated', count: priorities.length,
+      actions: '<a href="/digest">Digest →</a>', body: priorityList })}
+    ${panel({ title: 'This week in Parliament', count: diaryWk.length,
+      actions: '<a href="/diary">Diary →</a>', body: diaryList })}
+    ${panel({ title: 'Oral-question cut-offs', count: oralRows.length, body: oralList, pad: true })}
+    ${panel({ title: 'Sector headlines', count: sector.length,
+      actions: '<a href="/sector">Sector watch →</a>', body: sectorList })}
+    ${panel({ title: 'Engagement & UA peers', body: peerList })}
+  </div>`;
+
+  const dashBody = `<div class="dash-head"><h1>Command centre</h1>
+      <span class="sub">DMU public affairs — week of ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
+      <span class="spacer"></span>
+      <button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button></div>
+    <div class="dash-kpis">
+      ${kpi(deadlines.length, 'deadlines ≤15wd', '#', deadlines.some((d) => d.wdr < 7) ? 'warn' : '')}
+      ${kpi(newParl, 'new parliamentary', '/digest')}
+      ${kpi(newInq, 'new inquiries', '/committees')}
+      ${kpi(newCons, 'new consultations', '/consultations')}
+      ${kpi(newTT, 'new sector reports', '/sector')}
+      ${kpi(fuDue, `follow-ups due${fuOverdue ? ` (${fuOverdue} late)` : ''}`, '/engagement', fuOverdue ? 'warn' : '')}
     </div>
-
     <div id="briefing-out" class="briefing" hidden>
       <div class="slideout-head" style="border-radius:8px 8px 0 0"><strong>Weekly briefing</strong>
         <button class="close" onclick="document.getElementById('briefing-out').hidden=true">×</button></div>
@@ -112,16 +182,9 @@ router.get('/', async (req, res) => {
       <div class="draft-actions"><button onclick="DMU.copyBriefing()">Copy</button>
         <button onclick="DMU.weeklyBriefing(this)">Regenerate</button></div>
     </div>
+    ${grid}`;
 
-    <section><h2>Response deadlines — next ${HORIZON} working days <span class="count">${deadlines.length}</span></h2>
-      ${deadlines.length ? `<table><thead><tr><th>Left</th><th>Body</th><th>Title</th><th>Type</th><th></th></tr></thead><tbody>${deadlineRows}</tbody></table>`
-        : '<p class="empty">No relevant response deadlines inside the horizon.</p>'}</section>
-
-    <section><h2>Oral-question submission cut-offs <span class="count">${oralRows.length}</span></h2>
-      ${oralRows.length ? `<table><thead><tr><th>Left</th><th>Department</th><th>Session</th><th>Deadline</th></tr></thead><tbody>${oralRows.join('')}</tbody></table>`
-        : '<p class="empty">No upcoming oral-question sessions for the key departments.</p>'}</section>`;
-
-  res.send(layout({ title: 'This week', body, active: '/action' }));
+  res.send(layout({ title: 'Command centre', body: dashBody, active: '/action', dashboard: true }));
 });
 
 module.exports = router;
