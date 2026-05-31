@@ -71,6 +71,29 @@ async function generate() {
   return { text, counts };
 }
 
+/**
+ * Short "state of play" for the dashboard — 2-3 sentences answering "what does
+ * today's picture mean for DMU public-affairs strategy", not a list. Cheap and
+ * fast; distinct from the long weekly briefing.
+ */
+async function stateOfPlay() {
+  if (!claude.isConfigured()) throw new Error('ANTHROPIC_API_KEY not set.');
+  const data = gather();
+  const fmt = (arr, f) => arr.length ? arr.map(f).join('; ') : '(none)';
+  const user =
+    `You are the De Montfort University (DMU) public-affairs lead's analyst.\n` +
+    `DMU context:\n${dmuContextBlock()}\n\n` +
+    `From the data below, write a 2-3 sentence "state of play" for THIS MORNING: what matters most ` +
+    `for DMU's public-affairs strategy right now, what's gaining momentum, and the single most ` +
+    `important thing to act on. Plain, direct, strategic — no preamble, no bullet points.\n\n` +
+    `Parliamentary (7d): ${fmt(data.parliamentary, (i) => `${i.keyword_group}: ${i.title}`)}\n` +
+    `Inquiries closing: ${fmt(data.inquiries, (i) => `${i.inquiry_title} (${i.working_days_remaining ?? '?'}wd)`)}\n` +
+    `Consultations closing: ${fmt(data.consultations, (c) => `${c.title} (${c.working_days_remaining ?? '?'}wd)`)}\n` +
+    `Sector/think-tank: ${fmt(data.thinktanks, (t) => `${t.source_name}: ${t.title}`)}\n`;
+  const text = await claude.callClaude({ user, maxTokens: 350, model: claude.FAST_MODEL });
+  return { text: text.trim() };
+}
+
 /** Generate and email the weekly briefing (scheduler / Admin). */
 async function sendWeekly() {
   const { logFetch } = require('../db/database');
@@ -95,4 +118,4 @@ async function sendWeekly() {
   }
 }
 
-module.exports = { generate, sendWeekly, gather };
+module.exports = { generate, stateOfPlay, sendWeekly, gather };

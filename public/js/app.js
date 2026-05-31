@@ -141,6 +141,14 @@
     } catch (e) { alert('Error: ' + e.message); }
     return false;
   }
+  async function stateOfPlay(btn) {
+    const box = document.getElementById('sop');
+    btn.disabled = true; btn.textContent = '✨ Thinking…';
+    try {
+      const r = await postJSON('/api/state-of-play', {});
+      box.innerHTML = '<div class="sop-text">' + (r.text || '').replace(/</g, '&lt;') + '</div>';
+    } catch (e) { btn.disabled = false; btn.textContent = '✨ Brief me — write today’s state of play'; alert('Error: ' + e.message); }
+  }
   async function testEmail(btn) {
     btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Sending…';
     try { const r = await postJSON('/api/admin/test-email', {}); alert('Test email sent to ' + r.to); }
@@ -255,6 +263,6 @@
 
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, savePolicyUnit, clearPolicyUnit, reassess, toggleWatch, testEmail, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
+    addContext, savePolicyUnit, clearPolicyUnit, reassess, toggleWatch, testEmail, stateOfPlay, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
     saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

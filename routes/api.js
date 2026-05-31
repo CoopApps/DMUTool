@@ -67,6 +67,10 @@ router.post('/briefing', asyncH(async (req, res) => {
   const result = await require('../services/briefing').generate();
   res.json(result);
 }));
+router.post('/state-of-play', asyncH(async (req, res) => {
+  if (!isConfigured()) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not set.' });
+  res.json(await require('../services/briefing').stateOfPlay());
+}));
 
 // ---- Tier 2 semantic matching ----------------------------------------------
 router.post('/match/semantic', asyncH(async (req, res) => {

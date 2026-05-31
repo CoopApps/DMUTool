@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Views
+app.use('/dashboard', require('./routes/dashboard'));
 app.use('/action', require('./routes/action'));
 app.use('/digest', require('./routes/digest'));
 app.use('/diary', require('./routes/diary'));
@@ -35,7 +36,7 @@ app.use('/search', require('./routes/search'));
 app.use('/admin', require('./routes/admin'));
 app.use('/api', require('./routes/api'));
 
-app.get('/', (req, res) => res.redirect('/action'));
+app.get('/', (req, res) => res.redirect('/dashboard'));
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 // Branded 404 + error pages via the app layout.
