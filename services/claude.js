@@ -7,7 +7,10 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 
+// Quality model for drafting / expert reasoning.
 const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514';
+// Cheaper, fast model for high-volume triage (relevance gate). ~10x cheaper.
+const FAST_MODEL = process.env.CLAUDE_FAST_MODEL || 'claude-haiku-4-5-20251001';
 
 let _client = null;
 function client() {
@@ -36,4 +39,4 @@ function isConfigured() {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
-module.exports = { callClaude, isConfigured, MODEL };
+module.exports = { callClaude, isConfigured, MODEL, FAST_MODEL };

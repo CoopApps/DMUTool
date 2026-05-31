@@ -87,7 +87,7 @@ async function scoreItem(itemType, itemId) {
 
   let parsed;
   try {
-    const out = await claude.callClaude({ system, user, maxTokens: 300 });
+    const out = await claude.callClaude({ system, user, maxTokens: 300, model: claude.FAST_MODEL });
     const m = out.match(/\{[\s\S]*\}/);
     parsed = JSON.parse(m ? m[0] : out);
   } catch (e) {
