@@ -95,7 +95,7 @@ router.get('/:id', async (req, res) => {
         </div>
       </div>
       <div class="mp-detail">
-        <section><h2>Engagement history</h2><ul>${logRows || '<li class="empty">No contact logged.</li>'}</ul>
+        <section id="log"><h2>Engagement history</h2><ul>${logRows || '<li class="empty">No contact logged.</li>'}</ul>
           <form class="log-form" onsubmit="return DMU.logContact(event, ${mp.id})">
             <h3>Log contact</h3>
             <input type="date" name="date" required>

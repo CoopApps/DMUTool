@@ -237,10 +237,12 @@ router.get('/', async (req, res) => {
   const briefingBtn = claudeOn
     ? '<button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button>'
     : '<button class="primary" disabled title="Needs a Claude API key">Weekly briefing (needs Claude)</button>';
+  const printBtn = '<button onclick="window.print()" title="Print or save the brief as PDF to circulate">🖨 Print brief</button>';
 
   const dashBody = `<div class="dash-head"><h1>${greeting}</h1>
       <span class="sub">DMU public affairs · ${esc(fullDate)}</span>
       <span class="spacer"></span>
+      ${printBtn}
       ${briefingBtn}</div>
     ${healthBar}
     <div class="dash-kpis">

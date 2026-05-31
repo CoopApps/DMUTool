@@ -36,6 +36,27 @@ function policyUnitPanel(members) {
   </div>`;
 }
 
+function setupPanel(s, { claudeOn, emailOn }) {
+  const check = (ok, label, detail, warn) =>
+    `<li class="setup-row"><span class="setup-dot ${ok ? 'ok' : (warn ? 'warn' : 'off')}">${ok ? '✓' : (warn ? '!' : '○')}</span>
+      <span><b>${esc(label)}</b> — ${detail}</span></li>`;
+  const lastFetch = s.lastFetch && s.lastFetch.at ? s.lastFetch.at.slice(0, 16).replace('T', ' ') : 'never';
+  return `<ul class="setup-list">
+    ${check(claudeOn, 'Claude AI (curation, drafting, briefing)', claudeOn
+      ? 'API key set — full AI curation active' : 'No <code>ANTHROPIC_API_KEY</code> — running on the free keyword heuristic', !claudeOn)}
+    ${check(emailOn, 'Email (morning digest + deadline alerts)', emailOn
+      ? `configured → ${esc(process.env.DIGEST_TO || '')}` : 'Set <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>DIGEST_TO</code> in .env to enable', !emailOn)}
+    ${check(s.academics > 0, 'Academic directory', `${s.academics} academics${s.academics ? '' : ' — run the Contensis crawl'}`)}
+    ${check(s.parliamentary + s.external > 0, 'Monitoring data', `${s.parliamentary} parliamentary · ${s.external} sector items · ${s.mps} members`)}
+    ${check(s.lastFetch && s.lastFetch.at, 'Data fetches', `last successful: ${esc(lastFetch)}`)}
+  </ul>
+  <div class="card-actions">
+    <button ${emailOn ? '' : 'disabled title="Configure SMTP first"'} onclick="DMU.testEmail(this)">Send test email</button>
+    <button onclick="DMU.runSource('deadlineAlerts', this)">Run deadline alerts now</button>
+    <button onclick="DMU.runSource('email', this)">Send digest now</button>
+  </div>`;
+}
+
 router.get('/', (req, res) => {
   const groups = all('SELECT * FROM keyword_groups ORDER BY name');
   const bodies = all('SELECT * FROM professional_bodies ORDER BY name');
@@ -46,6 +67,15 @@ router.get('/', (req, res) => {
      WHERE policy_unit_role IS NOT NULL ORDER BY policy_unit_role, name`);
   const claudeOn = require('../services/claude').isConfigured();
   const heuristicN = require('../services/relevance').heuristicCount();
+  const emailOn = require('../services/email').isConfigured();
+  const setup = {
+    academics: get('SELECT COUNT(*) c FROM academics').c,
+    groups: groups.length,
+    external: get('SELECT COUNT(*) c FROM external_items').c,
+    parliamentary: get('SELECT COUNT(*) c FROM parliamentary_items').c,
+    mps: get('SELECT COUNT(*) c FROM mps').c,
+    lastFetch: get('SELECT MAX(completed_at) at FROM fetch_log WHERE error IS NULL'),
+  };
 
   // ---- Academic directory coverage ----
   const cov = {
@@ -130,6 +160,7 @@ router.get('/', (req, res) => {
       <span class="spacer"></span>
       <span class="pill">Background queue: ${queuePending} pending</span></div>
     <div class="panelgrid">
+      ${panel({ title: 'Setup & status', pad: true, style: 'grid-column:1/-1;', body: setupPanel(setup, { claudeOn, emailOn }) })}
       ${panel({ title: 'Academic directory coverage', body: coverageBody, style: 'grid-column:1/-1;' })}
       ${panel({ title: 'Relevance curation', pad: true, style: 'grid-column:1/-1;', body: `
         <p class="why">Curation mode: <b>${claudeOn ? 'Claude AI judgement' : 'keyword-only heuristic'}</b>${claudeOn ? '' : ' — no API key set'}.

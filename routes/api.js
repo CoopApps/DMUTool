@@ -232,6 +232,20 @@ router.post('/admin/policy-unit/clear', (req, res) => {
 
 // Re-queue all heuristic-scored items for AI re-judgement (use after funding
 // the Claude key, so the spend upgrades the existing backlog, not just new items).
+// Send a test email to verify SMTP before relying on the morning digest/alerts.
+router.post('/admin/test-email', asyncH(async (req, res) => {
+  const email = require('../services/email');
+  if (!email.isConfigured()) return res.status(400).json({ error: 'SMTP/DIGEST_TO not configured in .env' });
+  const base = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+  await email.sendMail({
+    subject: 'DMU Intelligence — test email',
+    html: `<div style="font-family:Arial,sans-serif"><h2 style="color:#0a1f44">✓ Email is working</h2>
+      <p>This is a test from the DMU Parliamentary Intelligence tool. Morning digests and deadline alerts will be delivered to this address.</p>
+      <p><a href="${base}/action">Open the Command Centre →</a></p></div>`,
+  });
+  res.json({ ok: true, to: process.env.DIGEST_TO });
+}));
+
 router.post('/admin/reassess', (req, res) => {
   const relevance = require('../services/relevance');
   const claudeOn = require('../services/claude').isConfigured();

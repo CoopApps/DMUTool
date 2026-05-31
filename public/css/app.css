@@ -176,6 +176,24 @@ body.dashmode .dash-kpis { margin: 0 2px 10px; }
 .watchstar { background: none; border: 0; cursor: pointer; font-size: 16px; color: var(--dmu-accent); padding: 0 4px 0 0; box-shadow: none; }
 .watchstar.on { color: #f5a623; }
 .watched-star { color: #f5a623; }
+/* Admin setup checklist */
+.setup-list { list-style: none; margin: 0; padding: 0; }
+.setup-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.setup-dot { flex: 0 0 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; font-weight: 700; font-size: 13px; }
+.setup-dot.ok { background: #e3f4ea; color: var(--green); }
+.setup-dot.warn { background: #fdf0db; color: var(--amber); }
+.setup-dot.off { background: #eee; color: #888; }
+/* Print / share: drop the chrome, stack everything, keep the substance. */
+@media print {
+  .topbar, .healthbar, .dash-head button, .briefing, .card-actions, .filters, .weeknav, .sector-tabs, .freshness, footer { display: none !important; }
+  body, body.dashmode { height: auto !important; overflow: visible !important; background: #fff !important; }
+  main, body.dashmode main { overflow: visible !important; height: auto !important; padding: 0 !important; }
+  .dashgrid { display: block !important; }
+  .dashgrid .panel, .panel { max-height: none !important; break-inside: avoid; border: 1px solid #ccc; margin: 0 0 12px; }
+  .panel-body { overflow: visible !important; }
+  .dash-kpis { display: flex !important; gap: 10px; }
+  a { text-decoration: none; color: #000; }
+}
 /* Admin → DMU Policy Unit members */
 .pu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 10px; }
 .pu-role { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fafbfc; }
