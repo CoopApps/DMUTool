@@ -43,7 +43,8 @@ router.get('/', (req, res) => {
       <span class="date">${esc((a.date || '').slice(0, 10))}</span>
     </div>
     <h3><a href="${esc(a.url || '#')}" target="_blank" rel="noopener">${esc(a.title)}</a></h3>
-    ${a.snippet ? `<p class="snippet">${esc(a.snippet.slice(0, 160))}</p>` : ''}
+    ${a.snippet ? `<p class="story">${esc(a.snippet)}</p>`
+      : '<p class="story empty">No preview text — open the link to read the story.</p>'}
   </article>`).join('');
 
   const countLabel = member

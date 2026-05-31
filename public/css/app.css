@@ -153,6 +153,9 @@ h2 { font-size: 18px; }
 .card-head { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
 .card h3 { margin: 6px 0; font-size: 16px; }
 .snippet { color: #333; font-size: 14px; }
+/* Story extract on sector / UA-peer cards — enough body text to judge relevance. */
+.story { color: #2a3142; font-size: 13.5px; line-height: 1.5; margin: 6px 0 8px; }
+.story.empty { color: var(--muted); font-style: italic; }
 .card-actions button, .filters button, form button, .draft-actions button {
   background: linear-gradient(180deg, #16315f, var(--dmu)); color: #fff; border: 0; border-radius: 7px;
   padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; letter-spacing: .01em;

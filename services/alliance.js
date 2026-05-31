@@ -14,9 +14,17 @@ const { all, get, run, logFetch } = require('../db/database');
 
 const parser = new RssParser({ headers: { 'User-Agent': USER_AGENT }, timeout: 20000 });
 
-function snippet(t, n = 220) {
+// Keep enough of the story to evaluate it for DMU interest, cutting cleanly on
+// a sentence/word boundary rather than mid-word.
+function snippet(t, n = 600) {
   if (!t) return '';
-  return String(t).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const clean = String(t).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (clean.length <= n) return clean;
+  const cut = clean.slice(0, n);
+  const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  if (lastStop > n * 0.6) return cut.slice(0, lastStop + 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 
 function insert(member, type, { title, date, url, snippet: sn }) {

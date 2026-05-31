@@ -16,9 +16,18 @@ const { sleep, USER_AGENT } = require('../lib/http');
 
 const parser = new RssParser({ headers: { 'User-Agent': USER_AGENT }, timeout: 15000 });
 
-function snippet(text, n = 300) {
+// Capture a meaningful chunk of the story (not just a teaser) so each item can
+// be judged for DMU relevance without opening the link. Cut on a sentence or
+// word boundary rather than mid-word.
+function snippet(text, n = 600) {
   if (!text) return '';
-  return String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const clean = String(text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (clean.length <= n) return clean;
+  const cut = clean.slice(0, n);
+  const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  if (lastStop > n * 0.6) return cut.slice(0, lastStop + 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 
 function domainOf(url) {

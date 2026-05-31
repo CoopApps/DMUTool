@@ -49,7 +49,8 @@ router.get('/', (req, res) => {
       <div class="card-head"><span class="src">${esc(it.source_name)}</span>
         <span class="date">${esc((it.date || '').slice(0,10))}</span>${meta}</div>
       <h3><a href="${esc(it.url || '#')}" target="_blank" rel="noopener">${esc(it.title)}</a></h3>
-      <p class="snippet">${esc((it.summary || '').slice(0, 100))}</p>
+      ${it.summary ? `<p class="story">${esc(it.summary)}</p>`
+        : '<p class="story empty">No preview text — open the link to read the story.</p>'}
       ${rel}
       <div class="kw-pills">${groups}</div>
     </article>`;

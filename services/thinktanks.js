@@ -22,9 +22,17 @@ const relevance = require('./relevance');
 const parser = new RssParser({ headers: { 'User-Agent': USER_AGENT }, timeout: 20000 });
 const PER_RUN = parseInt(process.env.THINKTANK_PER_RUN || '40', 10);
 
-function snippet(t, n = 300) {
+// Keep a substantial extract of the publication so it can be judged for DMU
+// relevance, cut on a sentence/word boundary.
+function snippet(t, n = 600) {
   if (!t) return '';
-  return String(t).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const clean = String(t).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (clean.length <= n) return clean;
+  const cut = clean.slice(0, n);
+  const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  if (lastStop > n * 0.6) return cut.slice(0, lastStop + 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 function domainOf(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
