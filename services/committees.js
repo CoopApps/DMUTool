@@ -27,7 +27,14 @@ async function fetchOpenInquiries() {
   const take = 30;
   for (let page = 0; page < 20; page++) {
     const url = `${BASE}/api/Inquiries?Status=Open&take=${take}&skip=${skip}`;
-    const data = await getJson(url);
+    let data;
+    for (let attempt = 0; ; attempt++) {
+      try { data = await getJson(url); break; }
+      catch (e) {
+        if (attempt >= 2) throw e;       // give transient timeouts two retries
+        await sleep(3000);
+      }
+    }
     const items = data.items || data.Items || [];
     out.push(...items);
     if (items.length < take) break;

@@ -109,9 +109,13 @@ async function legislation() {
           const feed = await parser.parseString(text);
           for (const it of feed.items || []) {
             fetched += 1;
+            // Atom feeds sometimes parse title/link as objects — coerce to string.
+            const title = typeof it.title === 'object' ? (it.title._ || it.title.value || '') : (it.title || '');
+            let link = it.link;
+            if (typeof link === 'object') link = link.href || link._ || (Array.isArray(link) && link[0] && (link[0].href || link[0])) || '';
             if (insert({
               source_name: 'legislation.gov.uk (SI)', source_type: 'legislation',
-              title: it.title, date: it.isoDate || it.pubDate, url: it.link,
+              title: String(title), date: it.isoDate || it.pubDate, url: String(link || ''),
               summary: snippet(it.contentSnippet || it.content), meta: { group: g.name },
             })) created += 1;
           }
@@ -131,7 +135,7 @@ async function edms() {
   try {
     for (const g of loadGroups()) {
       for (const kw of g.keywords) {
-        const url = `https://oralquestions-api.parliament.uk/EarlyDayMotions/list?parameters.searchTerm=${encodeURIComponent(kw)}&parameters.take=20`;
+        const url = `https://oralquestionsandmotions-api.parliament.uk/EarlyDayMotions/list?parameters.searchTerm=${encodeURIComponent(kw)}&parameters.take=20`;
         let data;
         try { data = await getJson(url); } catch (e) { error=(error||'')+`${kw}:${e.message};`; await sleep(1000); continue; }
         for (const row of data.Response || data.response || []) {
@@ -161,7 +165,7 @@ async function oralQuestions() {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const end = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10);
-    const url = `https://oralquestions-api.parliament.uk/oralquestiontimes/list?parameters.answeringDateStart=${today}&parameters.answeringDateEnd=${end}`;
+    const url = `https://oralquestionsandmotions-api.parliament.uk/oralquestiontimes/list?parameters.answeringDateStart=${today}&parameters.answeringDateEnd=${end}`;
     const data = await getJson(url);
     for (const row of data.Response || data.response || []) {
       fetched += 1;
