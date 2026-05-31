@@ -9,9 +9,10 @@
 
 const express = require('express');
 const router = express.Router();
-const { all, get, ageNewFlags } = require('../db/database');
+const { all, get, ageNewFlags, getContext, setContext } = require('../db/database');
 const { layout, panel, esc } = require('../lib/render');
 const { workingDaysUntil, sittingDaysBefore } = require('../lib/parliament');
+const claude = require('../services/claude');
 
 const HORIZON = 15; // working days
 const RELEVANT = `(relevance_checked = 0 OR relevance_level IN ('high','medium'))`;
@@ -29,6 +30,51 @@ function ragClass(wdr) {
 
 router.get('/', async (req, res) => {
   ageNewFlags();
+
+  // --- Morning ritual: "since you last looked" -----------------------------
+  // Track the previous visit; only advance the marker if the last one was over
+  // an hour ago, so refreshing through the morning doesn't erase the overnight
+  // list. First-ever visit falls back to the last 24h.
+  const prevVisit = getContext('action_last_visit');
+  const since = prevVisit || new Date(Date.now() - 864e5).toISOString();
+  if (!prevVisit || (Date.now() - Date.parse(prevVisit)) > 3600 * 1000) {
+    setContext('action_last_visit', new Date().toISOString());
+  }
+  const sinceLabel = prevVisit
+    ? new Date(since).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : 'the last 24 hours';
+
+  const overnight = [
+    ...all(`SELECT id, inquiry_title AS title, created_at, 'committee_inquiry' AS kind, 'New inquiry' AS tag
+            FROM committee_inquiries WHERE created_at >= datetime(?) AND ${RELEVANT}`, [since]),
+    ...all(`SELECT id, title, created_at, 'consultation' AS kind, 'New consultation' AS tag
+            FROM consultations WHERE created_at >= datetime(?) AND ${RELEVANT}`, [since]),
+    ...all(`SELECT id, title, created_at, 'parliamentary_item' AS kind, source AS tag
+            FROM parliamentary_items WHERE created_at >= datetime(?) AND ${RELEVANT}`, [since]),
+    ...all(`SELECT id, title, created_at, 'external_item' AS kind, source_name AS tag
+            FROM external_items WHERE created_at >= datetime(?) AND relevance_level IN ('high','medium')`, [since]),
+  ].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '')).slice(0, 25);
+
+  // --- Data health: don't let silent staleness fool the morning check -------
+  const claudeOn = claude.isConfigured();
+  const lastOk = get(`SELECT MAX(completed_at) AS at FROM fetch_log WHERE error IS NULL`);
+  const lastOkAt = lastOk && lastOk.at ? lastOk.at : null;
+  const hoursSinceFetch = lastOkAt ? (Date.now() - Date.parse(lastOkAt.replace(' ', 'T') + 'Z')) / 36e5 : null;
+  const failing = all(
+    `SELECT source, error FROM fetch_log
+     WHERE id IN (SELECT MAX(id) FROM fetch_log GROUP BY source) AND error IS NOT NULL
+     ORDER BY source`);
+  const queueBacklog = get(`SELECT COUNT(*) c FROM task_queue WHERE status='pending'`).c;
+
+  const health = [];
+  if (!claudeOn) health.push({ cls: 'info', html: '<b>Keyword-only curation.</b> No Claude API key set — relevance is ranked from topic match + DMU expertise, not the AI judgement. Items are labelled <span class="tag grey">keyword match</span>.' });
+  if (hoursSinceFetch == null) health.push({ cls: 'warn', html: '<b>No successful data fetch on record.</b> Run sources from <a href="/admin">Admin</a>.' });
+  else if (hoursSinceFetch > 26) health.push({ cls: 'warn', html: `<b>Data may be stale</b> — last successful fetch was ${Math.round(hoursSinceFetch)}h ago. Check <a href="/admin">Admin</a>.` });
+  if (failing.length) health.push({ cls: 'warn', html: `<b>${failing.length} source${failing.length === 1 ? '' : 's'} failing:</b> ${esc(failing.slice(0, 6).map((f) => f.source).join(', '))}. See <a href="/admin">Admin</a>.` });
+  if (queueBacklog > 30) health.push({ cls: 'info', html: `${queueBacklog} items still being assessed — the curated lists will fill in shortly.` });
+  const healthBar = health.length
+    ? `<div class="healthbar">${health.map((h) => `<div class="hb ${h.cls}">${h.html}</div>`).join('')}</div>`
+    : '';
 
   // 1) Closing deadlines within horizon — gated on overall DMU interest
   //    (institutional impact + sector/UA + expertise, weighed together).
@@ -150,7 +196,20 @@ router.get('/', async (req, res) => {
     <p>${fuDue} engagement follow-up${fuDue === 1 ? '' : 's'} due${fuOverdue ? ` — <b style="color:var(--red)">${fuOverdue} overdue</b>` : ''}.</p>
     <p><a href="/alliance">UA peers →</a> · <a href="/engagement">Engagement →</a></p></div>`;
 
-  const grid = `<div class="dashgrid" style="grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:1fr 1fr;">
+  const KIND_HREF = { committee_inquiry: '/item/committee_inquiry/', consultation: '/item/consultation/',
+    parliamentary_item: '/item/parliamentary_item/', external_item: '/item/external_item/' };
+  const overnightList = overnight.length ? `<div class="plist">${overnight.map((o) => `
+    <a href="${KIND_HREF[o.kind]}${o.id}">
+      <span class="tag pink">${esc(o.tag || 'New')}</span>
+      <span class="t">${esc(o.title || '(untitled)')}</span>
+      <span class="muted">${esc((o.created_at || '').slice(5, 16))}</span>
+    </a>`).join('')}</div>`
+    : `<p class="empty">Nothing new since ${esc(sinceLabel)}. You're up to date — the week ahead is below.</p>`;
+
+  const grid = `<div class="dashgrid" style="grid-template-columns:1.2fr 1fr 1fr;grid-template-rows:auto 1fr 1fr;">
+    ${panel({ title: `New since you last looked`, count: overnight.length,
+      actions: `<span class="muted">since ${esc(sinceLabel)}</span>`,
+      body: overnightList, style: 'grid-column:1/-1; max-height:32vh;' })}
     ${panel({ title: 'Response deadlines', count: deadlines.length,
       actions: '<a class="csvbtn" href="/api/calendar.ics">.ics</a>', body: deadlineList })}
     ${panel({ title: 'Priorities — curated', count: priorities.length,
@@ -163,10 +222,19 @@ router.get('/', async (req, res) => {
     ${panel({ title: 'Engagement & UA peers', body: peerList })}
   </div>`;
 
-  const dashBody = `<div class="dash-head"><h1>Command centre</h1>
-      <span class="sub">DMU public affairs — week of ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
+  const now = new Date();
+  const hr = now.getHours();
+  const greeting = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  const fullDate = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const briefingBtn = claudeOn
+    ? '<button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button>'
+    : '<button class="primary" disabled title="Needs a Claude API key">Weekly briefing (needs Claude)</button>';
+
+  const dashBody = `<div class="dash-head"><h1>${greeting}</h1>
+      <span class="sub">DMU public affairs · ${esc(fullDate)}</span>
       <span class="spacer"></span>
-      <button class="primary" onclick="DMU.weeklyBriefing(this)">Generate weekly briefing</button></div>
+      ${briefingBtn}</div>
+    ${healthBar}
     <div class="dash-kpis">
       ${kpi(deadlines.length, 'deadlines ≤15wd', '#', deadlines.some((d) => d.wdr < 7) ? 'warn' : '')}
       ${kpi(newParl, 'new parliamentary', '/digest')}

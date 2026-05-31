@@ -35,7 +35,7 @@ app.use('/search', require('./routes/search'));
 app.use('/admin', require('./routes/admin'));
 app.use('/api', require('./routes/api'));
 
-app.get('/', (req, res) => res.redirect('/digest'));
+app.get('/', (req, res) => res.redirect('/action'));
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;

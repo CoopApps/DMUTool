@@ -29,14 +29,17 @@ async function drainOnce() {
   if (draining) return;
   draining = true;
   try {
+    // Heuristic scoring (no Claude) is free and instant — drain a big batch so
+    // the morning view is fully triaged. With Claude, throttle to manage spend.
+    const batch = claude.isConfigured() ? BATCH : Math.max(BATCH, 100);
     const tasks = all(
       `SELECT * FROM task_queue WHERE status='pending' AND attempts < ?
-       ORDER BY priority ASC, id ASC LIMIT ?`, [MAX_ATTEMPTS, BATCH]
+       ORDER BY priority ASC, id ASC LIMIT ?`, [MAX_ATTEMPTS, batch]
     );
     for (const t of tasks) {
-      // If a task needs Claude but it isn't configured, degrade gracefully.
-      if ((t.kind === 'relevance' || t.kind === 'semantic') && !claude.isConfigured()) {
-        if (t.kind === 'relevance') relevance.markUnscored(t.item_type, t.item_id);
+      // Without Claude, relevance still runs via the free heuristic gate (see
+      // relevance.scoreItem); only semantic expert-matching truly needs the API.
+      if (t.kind === 'semantic' && !claude.isConfigured()) {
         run(`UPDATE task_queue SET status='done', processed_at=datetime('now'),
              error='claude not configured — skipped' WHERE id=?`, [t.id]);
         continue;

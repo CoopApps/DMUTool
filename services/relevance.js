@@ -45,10 +45,46 @@ function interestsProfile() {
   }).filter(Boolean).join('\n');
 }
 
+/**
+ * No-Claude fallback. When the API key is absent we still want a curated,
+ * prioritised feed — not a flat "everything is medium" dump. This ranks an
+ * item from signals we already have for free: whether it matched a tracked DMU
+ * topic (keyword prefilter) and how strong the DMU expert match is. Honestly
+ * labelled "[keyword match]" so it's never mistaken for the Claude judgement.
+ */
+function heuristicScore(itemType, itemId) {
+  const map = TABLES[itemType];
+  if (!map) return null;
+  if (!get(`SELECT 1 FROM ${map.table} WHERE id = ?`, [itemId])) return null;
+
+  // Ensure tier-1 expert matches exist, then read the expertise signal.
+  let sig = matcher.expertiseSignal(itemId, itemType);
+  if (!sig.count) { try { matcher.matchItem(itemId, itemType); sig = matcher.expertiseSignal(itemId, itemType); } catch { /* ignore */ } }
+
+  const groupCol = map.table === 'external_items' ? 'keyword_groups' : 'keyword_group';
+  const gRow = get(`SELECT ${groupCol} AS g FROM ${map.table} WHERE id = ?`, [itemId]);
+  const group = gRow && gRow.g ? String(gRow.g).split(',')[0].trim() : null;
+
+  let level, bits = [];
+  if (sig.strong) { level = 'high'; bits.push(`strong DMU expertise (${sig.count} academic${sig.count === 1 ? '' : 's'} match)`); }
+  else if (group) {
+    level = 'medium'; bits.push(`matches DMU topic “${group}”`);
+    if (sig.count) bits.push(`${sig.count} possible expert${sig.count === 1 ? '' : 's'}`);
+  } else { level = 'low'; bits.push('keyword match only, no DMU expert'); }
+
+  const score = LEVEL_SCORE[level];
+  const rationale = `[keyword match] ${bits.join('; ')}`;
+  run(`UPDATE ${map.table} SET relevance_level=?, relevance_score=?, relevance_rationale=?, relevance_checked=1 WHERE id=?`,
+    [level, score, rationale, itemId]);
+  return { level, score, rationale };
+}
+
 /** Score one item. Returns { level, score, rationale } or null on skip. */
 async function scoreItem(itemType, itemId) {
   const map = TABLES[itemType];
   if (!map) throw new Error(`Unknown item type: ${itemType}`);
+  // No money in the Claude account → fall back to the free heuristic gate.
+  if (!claude.isConfigured()) return heuristicScore(itemType, itemId);
   const item = get(`SELECT id, ${map.title} AS title, ${map.text} AS text FROM ${map.table} WHERE id = ?`, [itemId]);
   if (!item) return null;
 
@@ -118,4 +154,4 @@ function markUnscored(itemType, itemId) {
        relevance_score=COALESCE(relevance_score,0.5) WHERE id=?`, [itemId]);
 }
 
-module.exports = { enqueue, scoreItem, markUnscored, TABLES };
+module.exports = { enqueue, scoreItem, heuristicScore, markUnscored, TABLES };

@@ -166,6 +166,12 @@ body.dashmode .dash-kpis { margin: 0 2px 10px; }
 .sector-tabs { max-width: 60vw; overflow-x: auto; flex-wrap: nowrap; }
 .sector-tabs::-webkit-scrollbar { height: 5px; }
 .assessing-note { padding: 10px 12px; }
+/* Command-centre data-health strip — surfaces silent staleness/failures. */
+.healthbar { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; margin: 0 2px 10px; }
+.healthbar .hb { font-size: 13px; padding: 8px 12px; border-radius: 7px; border: 1px solid; }
+.healthbar .hb.warn { background: #fdf3f3; border-color: #f1c9c9; color: #8a2020; }
+.healthbar .hb.info { background: #eef4fb; border-color: #cfe0f2; color: #234; }
+.healthbar .hb a { color: inherit; font-weight: 600; }
 /* Admin → DMU Policy Unit members */
 .pu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 10px; }
 .pu-role { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fafbfc; }
