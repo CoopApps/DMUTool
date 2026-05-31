@@ -11,6 +11,9 @@ const { db, run, logFetch } = require('../db/database');
 const matcher = require('./matcher');
 
 const BASE = 'https://hansard-api.parliament.uk';
+// Hansard contributions search needs the contribution type in the path.
+// 'Spoken' = debates/oral contributions. Configurable via HANSARD_TYPE.
+const HANSARD_TYPE = process.env.HANSARD_TYPE || 'Spoken';
 
 function snippet(text, n = 200) {
   if (!text) return '';
@@ -39,8 +42,12 @@ function upsertItem(item) {
   return { id: info.lastInsertRowid, isNew: true };
 }
 
+// Hansard contributions search needs the contribution type in the path.
+// 'Spoken' = debates/oral contributions. Configurable via HANSARD_TYPE.
+const HANSARD_TYPE = process.env.HANSARD_TYPE || 'Spoken';
+
 async function fetchKeyword(keyword) {
-  const url = `${BASE}/search/contributions.json?queryParameters.searchTerm=${encodeURIComponent(keyword)}` +
+  const url = `${BASE}/search/contributions/${HANSARD_TYPE}.json?queryParameters.searchTerm=${encodeURIComponent(keyword)}` +
     `&queryParameters.take=40&queryParameters.orderBy=SittingDateDesc`;
   const data = await getJson(url);
   // The contributions endpoint returns { Results: [...] } or { results: [...] }.
