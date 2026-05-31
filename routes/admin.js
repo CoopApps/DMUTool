@@ -66,7 +66,8 @@ router.get('/', (req, res) => {
   };
 
   const groupRows = groups.map((g) => `<tr>
-    <td>${esc(g.name)}</td>
+    <td><button type="button" class="watchstar ${g.watched ? 'on' : ''}" title="Watch this topic"
+        onclick="DMU.toggleWatch(${g.id}, this)">${g.watched ? '★' : '☆'}</button> ${esc(g.name)}</td>
     <td><form class="inline" onsubmit="return DMU.saveKeywords(event, ${g.id})">
       <input name="keywords" value="${esc(g.keywords)}" size="60">
       <button>Save</button>
@@ -81,7 +82,7 @@ router.get('/', (req, res) => {
       <button>Save</button>
     </form></td></tr>`).join('');
 
-  const SOURCES = ['hansard','writtenQuestions','committees','committeesRoster','govuk','whatson','feeds','guardian','thinktanks','briefings','appgs','alliance','bills','petitions','legislation','edms','oralQuestions','contensis','staffXml','dmuEvents','ukri','commonsRefresh','lordsRefresh','mpRefresh','email','briefing'];
+  const SOURCES = ['hansard','writtenQuestions','committees','committeesRoster','govuk','whatson','feeds','guardian','thinktanks','briefings','appgs','alliance','bills','petitions','legislation','edms','oralQuestions','contensis','staffXml','dmuEvents','ukri','commonsRefresh','lordsRefresh','mpRefresh','email','deadlineAlerts','briefing'];
   const logBySource = {};
   for (const l of logs) if (!logBySource[l.source]) logBySource[l.source] = l;
   const logRows = SOURCES.map((s) => {

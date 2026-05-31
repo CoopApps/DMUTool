@@ -60,6 +60,9 @@ function start() {
   // Daily 07:50 — morning email digest (after the 07:00–07:40 fetches)
   cron.schedule('50 7 * * *', safe('email-digest', email.sendDigest), opt);
 
+  // Daily 08:00 — deadline-breach alerts (after digest; uses fresh wd counts)
+  cron.schedule('0 8 * * *', safe('deadlineAlerts', () => require('../services/alerts').run()), opt);
+
   // Weekly Monday 08:15 — Claude weekly briefing email for the SLT
   cron.schedule('15 8 * * 1', safe('weekly-briefing', briefing.sendWeekly), opt);
 

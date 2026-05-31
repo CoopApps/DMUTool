@@ -186,6 +186,12 @@ router.delete('/admin/groups/:id', (req, res) => {
   run('DELETE FROM keyword_groups WHERE id=?', [req.params.id]);
   res.json({ ok: true });
 });
+// Toggle a "watched" topic — drives the watched-only filter and highlighting.
+router.post('/admin/groups/:id/watch', (req, res) => {
+  run('UPDATE keyword_groups SET watched = CASE WHEN watched=1 THEN 0 ELSE 1 END WHERE id=?', [req.params.id]);
+  const row = get('SELECT watched FROM keyword_groups WHERE id=?', [req.params.id]);
+  res.json({ ok: true, watched: row ? row.watched : 0 });
+});
 
 // ---- Admin: professional bodies --------------------------------------------
 router.put('/admin/bodies/:id', (req, res) => {
@@ -251,6 +257,7 @@ const SOURCE_RUNNERS = {
   guardian: () => require('../services/guardian').run(),
   govuk: () => require('../services/govuk').run(),
   email: () => require('../services/email').sendDigest(),
+  deadlineAlerts: () => require('../services/alerts').run(),
   mpRefresh: () => require('../services/mpProfile').refreshAll(),
   lordsRefresh: () => require('../services/lords').refreshLords(),
   commonsRefresh: () => require('../services/lords').refreshCommons(),

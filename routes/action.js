@@ -67,7 +67,13 @@ router.get('/', async (req, res) => {
   const queueBacklog = get(`SELECT COUNT(*) c FROM task_queue WHERE status='pending'`).c;
 
   const heuristicN = require('../services/relevance').heuristicCount();
+  const closing7 = get(
+    `SELECT (SELECT COUNT(*) FROM committee_inquiries WHERE evidence_status='AcceptingEvidence'
+              AND working_days_remaining BETWEEN 0 AND 7 AND ${RELEVANT})
+          + (SELECT COUNT(*) FROM consultations WHERE (deadline IS NULL OR date(deadline) >= date('now'))
+              AND working_days_remaining BETWEEN 0 AND 7 AND ${RELEVANT}) AS c`).c;
   const health = [];
+  if (closing7 > 0) health.push({ cls: 'warn', html: `<b>${closing7} response deadline${closing7 === 1 ? '' : 's'} closing within 7 working days</b> — see the deadlines panel below and act now.` });
   if (!claudeOn) health.push({ cls: 'info', html: '<b>Keyword-only curation.</b> No Claude API key set — relevance is ranked from topic match + DMU expertise, not the AI judgement. Items are labelled <span class="tag grey">keyword match</span>.' });
   else if (heuristicN > 0) health.push({ cls: 'info', html: `<b>${heuristicN} item${heuristicN === 1 ? '' : 's'} awaiting AI re-judgement.</b> Scored by the keyword heuristic before Claude was enabled — <a href="/admin">re-assess in Admin</a> to upgrade them.` });
   if (hoursSinceFetch == null) health.push({ cls: 'warn', html: '<b>No successful data fetch on record.</b> Run sources from <a href="/admin">Admin</a>.' });

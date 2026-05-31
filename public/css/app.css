@@ -172,6 +172,10 @@ body.dashmode .dash-kpis { margin: 0 2px 10px; }
 .healthbar .hb.warn { background: #fdf3f3; border-color: #f1c9c9; color: #8a2020; }
 .healthbar .hb.info { background: #eef4fb; border-color: #cfe0f2; color: #234; }
 .healthbar .hb a { color: inherit; font-weight: 600; }
+.freshness { font-size: 12px; color: var(--muted); font-weight: 500; }
+.watchstar { background: none; border: 0; cursor: pointer; font-size: 16px; color: var(--dmu-accent); padding: 0 4px 0 0; box-shadow: none; }
+.watchstar.on { color: #f5a623; }
+.watched-star { color: #f5a623; }
 /* Admin → DMU Policy Unit members */
 .pu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 10px; }
 .pu-role { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fafbfc; }

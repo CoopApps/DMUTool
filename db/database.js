@@ -57,6 +57,15 @@ function init() {
     ensureColumn(t, 'relevance_checked', 'INTEGER DEFAULT 0');
   }
 
+  // Deadline-breach alerting — the tightest working-days bucket we've alerted
+  // on, so we email once per threshold crossing (7wd, then ≤1wd) not every run.
+  for (const t of ['committee_inquiries', 'consultations']) {
+    ensureColumn(t, 'alerted_wd', 'INTEGER');
+  }
+  // Watched topics — let the officer star the keyword groups they care about
+  // most; drives a "watched only" filter and prioritisation.
+  ensureColumn('keyword_groups', 'watched', 'INTEGER DEFAULT 0');
+
   // Triggers to keep the FTS index in sync with the academics table.
   db.exec(`
     CREATE TRIGGER IF NOT EXISTS academics_ai AFTER INSERT ON academics BEGIN

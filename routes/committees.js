@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get, run, ageNewFlags } = require('../db/database');
-const { layout, panel, esc } = require('../lib/render');
+const { layout, panel, esc, freshness } = require('../lib/render');
 const matcher = require('../services/matcher');
 
 function deadlineClass(wdr) {
@@ -83,7 +83,7 @@ router.get('/', (req, res) => {
 
   const body = `<div class="dash-head"><h1>Committees</h1>
       <span class="sub">open calls for evidence + DMU-relevant committee membership</span>
-      <span class="spacer"></span>${toggle}</div>
+      <span class="spacer"></span>${freshness(['committees'])} ${toggle}</div>
     <div class="dashgrid" style="grid-template-columns:1fr 1fr;">
       ${panel({ title: 'Open calls for evidence', count: inquiries.length,
         body: inquiries.length ? inquiries.map(card).join('') : '<p class="empty">No calls for evidence open on DMU topics right now. New ones appear here automatically.</p>',

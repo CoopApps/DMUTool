@@ -27,31 +27,49 @@ function transport() {
   });
 }
 
+// Show only items DMU cares about (gate-passed or not-yet-scored).
+const RELEVANT = `(relevance_checked = 0 OR relevance_level IN ('high','medium'))`;
+
 function gather() {
+  // Closing deadlines lead the email — the most time-sensitive thing.
+  const closing = all(
+    `SELECT 'Committee' AS kind, committee_name AS org, inquiry_title AS title, working_days_remaining AS wdr, url
+       FROM committee_inquiries WHERE evidence_status='AcceptingEvidence'
+         AND working_days_remaining BETWEEN 0 AND 7 AND ${RELEVANT}
+     UNION ALL
+     SELECT 'Consultation' AS kind, organisation AS org, title, working_days_remaining AS wdr, url
+       FROM consultations WHERE (deadline IS NULL OR date(deadline) >= date('now'))
+         AND working_days_remaining BETWEEN 0 AND 7 AND ${RELEVANT}
+     ORDER BY wdr ASC LIMIT 20`
+  );
   const newItems = all(
     `SELECT source, keyword_group, title, member_name, date, url FROM parliamentary_items
-     WHERE is_new = 1 OR created_at >= datetime('now','-1 day')
-     ORDER BY keyword_group, date DESC LIMIT 40`
+     WHERE (is_new = 1 OR created_at >= datetime('now','-1 day')) AND ${RELEVANT}
+     ORDER BY (relevance_level='high') DESC, keyword_group, date DESC LIMIT 40`
   );
   const newInquiries = all(
     `SELECT committee_name, inquiry_title, working_days_remaining, deadline, url
-     FROM committee_inquiries WHERE evidence_status='AcceptingEvidence'
+     FROM committee_inquiries WHERE evidence_status='AcceptingEvidence' AND ${RELEVANT}
        AND (is_new = 1 OR working_days_remaining BETWEEN 0 AND 7)
      ORDER BY working_days_remaining ASC LIMIT 20`
   );
   const newCons = all(
     `SELECT organisation, title, working_days_remaining, deadline, url FROM consultations
-     WHERE (deadline IS NULL OR date(deadline) >= date('now'))
+     WHERE (deadline IS NULL OR date(deadline) >= date('now')) AND ${RELEVANT}
        AND (is_new = 1 OR working_days_remaining BETWEEN 0 AND 7)
      ORDER BY working_days_remaining ASC LIMIT 20`
   );
-  return { newItems, newInquiries, newCons };
+  return { closing, newItems, newInquiries, newCons };
 }
 
-function buildHtml({ newItems, newInquiries, newCons }) {
+function buildHtml({ closing, newItems, newInquiries, newCons }) {
   const base = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
   const section = (title, rows) =>
     rows.length ? `<h2 style="font-size:16px;margin:18px 0 6px">${title}</h2>${rows.join('')}` : '';
+
+  const closingRows = (closing || []).map((d) =>
+    `<p style="margin:4px 0"><b style="color:#c62828">${d.wdr} wd left</b> — ${esc(d.org || '')}:
+     <a href="${esc(d.url || base)}">${esc(d.title)}</a> <span style="color:#667">(${esc(d.kind)})</span></p>`);
 
   const itemRows = newItems.map((i) =>
     `<p style="margin:4px 0"><b>[${esc(i.source)}]</b> <a href="${esc(i.url)}">${esc(i.title)}</a>
@@ -66,10 +84,12 @@ function buildHtml({ newItems, newInquiries, newCons }) {
   return `<div style="font-family:Arial,sans-serif;max-width:680px;color:#1c2333">
     <h1 style="font-size:20px;color:#0a1f44">DMU Parliamentary Intelligence — morning digest</h1>
     <p style="color:#667">${new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</p>
+    ${closingRows.length ? `<div style="background:#fdf3f3;border:1px solid #f1c9c9;border-radius:8px;padding:8px 14px;margin:8px 0">
+      <h2 style="font-size:16px;margin:6px 0;color:#8a2020">⚠ Response deadlines closing within 7 working days</h2>${closingRows.join('')}</div>` : ''}
     ${section('New parliamentary activity', itemRows)}
     ${section('Committee inquiries — new or closing within 7 days', inqRows)}
     ${section('Government consultations — new or closing within 7 days', consRows)}
-    ${(!itemRows.length && !inqRows.length && !consRows.length) ? '<p>No new activity in the last 24 hours.</p>' : ''}
+    ${(!closingRows.length && !itemRows.length && !inqRows.length && !consRows.length) ? '<p>No new DMU-relevant activity in the last 24 hours.</p>' : ''}
     <hr style="margin:20px 0;border:none;border-top:1px solid #e2e5ea">
     <p><a href="${base}/digest">Open the full digest →</a></p>
   </div>`;

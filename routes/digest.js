@@ -63,6 +63,8 @@ function row(it) {
 router.get('/', (req, res) => {
   ageNewFlags();
   const showAll = req.query.show === 'all';
+  const urgentOnly = req.query.urgent === '1';   // high-relevance only
+  const watchedOnly = req.query.watched === '1';  // only starred topics
 
   const notIgnored = (type, tbl) => showAll ? '' :
     `AND NOT EXISTS (SELECT 1 FROM item_flags f WHERE f.item_type='${type}' AND f.item_id=${tbl}.id AND f.ignored=1)`;
@@ -87,22 +89,25 @@ router.get('/', (req, res) => {
 
   const everything = [...inquiries, ...rawItems];
   // Ruthless curation: only items the gate passed (high/medium). Show-all bypasses.
-  const passed = showAll ? everything : everything.filter(interestOk);
+  let passed = showAll ? everything : everything.filter(interestOk);
+  if (urgentOnly) passed = passed.filter((r) => r.relevance_level === 'high');
   const pendingCount = everything.filter(pending).length;
 
-  const groups = all('SELECT name FROM keyword_groups ORDER BY name');
+  const groups = all('SELECT name, watched FROM keyword_groups ORDER BY name');
+  const watchedSet = new Set(groups.filter((g) => g.watched).map((g) => g.name));
   const byGroup = {};
   for (const r of passed) {
     if (!r.keyword_group) continue;
+    if (watchedOnly && !watchedSet.has(r.keyword_group)) continue;
     (byGroup[r.keyword_group] = byGroup[r.keyword_group] || []).push(r);
   }
-  const totalShown = passed.length;
+  const totalShown = Object.values(byGroup).reduce((n, l) => n + l.length, 0);
 
-  // Only groups with curated items (no empty filler sections).
+  // Only groups with curated items (no empty filler sections). Watched topics float up.
   const ordered = groups
-    .map((g) => ({ name: g.name, list: (byGroup[g.name] || []).sort((a, b) => (b._sort || '').localeCompare(a._sort || '')) }))
+    .map((g) => ({ name: g.name, watched: !!g.watched, list: (byGroup[g.name] || []).sort((a, b) => (b._sort || '').localeCompare(a._sort || '')) }))
     .filter((g) => g.list.length > 0)
-    .sort((a, b) => b.list.length - a.list.length);
+    .sort((a, b) => (b.watched - a.watched) || (b.list.length - a.list.length));
 
   const jumpNav = ordered.length > 1 ? `<nav class="topic-jump">${ordered.map((g) =>
     `<a href="#g-${g.name.replace(/\W/g, '')}">${esc(g.name)} <b>${g.list.length}</b></a>`).join('')}</nav>` : '';
@@ -111,7 +116,7 @@ router.get('/', (req, res) => {
     const id = g.name.replace(/\W/g, '');
     const open = g.list.length <= 40;
     return `<section class="group ${open ? '' : 'collapsed'}" id="g-${id}">
-      <h2 onclick="this.parentElement.classList.toggle('collapsed')">${esc(g.name)} <span class="count">${g.list.length}</span></h2>
+      <h2 onclick="this.parentElement.classList.toggle('collapsed')">${g.watched ? '<span class="watched-star" title="Watched topic">★</span> ' : ''}${esc(g.name)} <span class="count">${g.list.length}</span></h2>
       <div class="group-body drows">${g.list.map(row).join('')}</div>
     </section>`;
   }).join('');
@@ -123,10 +128,13 @@ router.get('/', (req, res) => {
     <a href="/digest?show=all">Show everything (unfiltered)</a> · <a href="/search">Search →</a></p>
   </div>`;
 
+  const none = !showAll && !urgentOnly && !watchedOnly;
   const relToggle = `<div class="filters">
-    <a href="/digest" class="${showAll ? '' : 'active'}">Curated</a>
-    <a href="/digest?show=all" class="${showAll ? 'active' : ''}">Show all (unfiltered)</a>
-    <a href="/search">Search everything →</a>
+    <a href="/digest" class="${none ? 'active' : ''}">Curated</a>
+    <a href="/digest?urgent=1" class="${urgentOnly ? 'active' : ''}">🔴 Urgent only</a>
+    <a href="/digest?watched=1" class="${watchedOnly ? 'active' : ''}">★ Watched topics</a>
+    <a href="/digest?show=all" class="${showAll ? 'active' : ''}">Show all</a>
+    <a href="/search">Search →</a>
   </div>`;
 
   const summary = totalShown

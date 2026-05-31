@@ -141,6 +141,13 @@
     } catch (e) { alert('Error: ' + e.message); }
     return false;
   }
+  async function toggleWatch(id, btn) {
+    try {
+      const r = await postJSON(`/api/admin/groups/${id}/watch`, {});
+      btn.classList.toggle('on', !!r.watched);
+      btn.textContent = r.watched ? '★' : '☆';
+    } catch (e) { alert('Error: ' + e.message); }
+  }
   async function reassess(btn) {
     btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Queuing…';
     try {
@@ -242,6 +249,6 @@
 
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
-    addContext, savePolicyUnit, clearPolicyUnit, reassess, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
+    addContext, savePolicyUnit, clearPolicyUnit, reassess, toggleWatch, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
     saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, setContext, ageNewFlags } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, esc, freshness } = require('../lib/render');
 const { getRecesses, sittingDaysBefore, workingDaysUntil } = require('../lib/parliament');
 
 function startOfWeek(d) {
@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
 
   const body = `<div class="dash-head"><h1>Parliamentary diary</h1>
       <span class="sub">${weekStart} – ${weekEnd}${offset === 0 ? ' · this week' : ''}</span>
-      <span class="spacer"></span>
+      <span class="spacer"></span>${freshness(['whatson'])}
       <div class="weeknav">
         <a href="/diary?week=${offset-1}">← Previous</a>
         <a href="/diary?week=0">Today</a>

@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get } = require('../db/database');
-const { layout, panel, esc } = require('../lib/render');
+const { layout, panel, esc, freshness } = require('../lib/render');
 
 const TABS = [
   ['he_news', 'HE news'],
@@ -124,7 +124,7 @@ router.get('/', (req, res) => {
 
   const body = `<div class="dash-head"><h1>Sector watch</h1>
       <span class="sub">higher-education sector news & policy, filtered for DMU relevance</span>
-      <span class="spacer"></span>
+      <span class="spacer"></span>${freshness(['feeds', 'thinktanks', 'guardian', 'briefings'])}
       <div class="tabs sector-tabs">${tabnav}</div></div>
     ${kpis}
     <div class="dashgrid" style="grid-template-rows:1fr;">

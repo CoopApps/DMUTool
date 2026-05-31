@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, run, ageNewFlags } = require('../db/database');
-const { layout, panel, esc } = require('../lib/render');
+const { layout, panel, esc, freshness } = require('../lib/render');
 const matcher = require('../services/matcher');
 
 function deadlineClass(wdr) {
@@ -69,7 +69,7 @@ router.get('/', (req, res) => {
 
   const body = `<div class="dash-head"><h1>Government consultations</h1>
       <span class="sub">open GOV.UK consultations on DMU topics</span>
-      <span class="spacer"></span>${toggle}</div>
+      <span class="spacer"></span>${freshness(['govuk'])} ${toggle}</div>
     <div class="dashgrid" style="grid-template-rows:1fr;">
       ${panel({ title: 'Consultations', count: rows.length,
         body: rows.length ? rows.map(card).join('') : '<p class="empty">No consultations on record. Run a GOV.UK fetch from Admin.</p>',
