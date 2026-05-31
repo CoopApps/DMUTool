@@ -264,6 +264,76 @@ router.post('/admin/context', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Events: create, invitees, status, contacts, template ------------------
+router.post('/events', (req, res) => {
+  const { title, date, location, description } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title required' });
+  const info = run(`INSERT INTO pa_events (title, date, location, description) VALUES (?,?,?,?)`,
+    [title, date || null, location || null, description || null]);
+  res.json({ ok: true, id: info.lastInsertRowid });
+});
+
+// Search Members to add to an event (excludes those already on the list).
+router.get('/events/:id/member-search', (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.json({ results: [] });
+  const like = `%${q}%`;
+  const rows = all(
+    `SELECT id, first_name, last_name, party, constituency, email FROM mps
+     WHERE (first_name LIKE ? OR last_name LIKE ? OR constituency LIKE ? OR party LIKE ?)
+       AND id NOT IN (SELECT mp_id FROM event_invitees WHERE event_id=? AND mp_id IS NOT NULL)
+     ORDER BY last_name LIMIT 20`, [like, like, like, like, req.params.id]);
+  res.json({ results: rows });
+});
+
+router.post('/events/:id/invitee', (req, res) => {
+  const eventId = req.params.id;
+  const { mp_id } = req.body;
+  if (mp_id) {
+    const m = get('SELECT * FROM mps WHERE id=?', [mp_id]);
+    if (!m) return res.status(404).json({ error: 'MP not found' });
+    run(`INSERT OR IGNORE INTO event_invitees (event_id, mp_id, name, email, org)
+         VALUES (?,?,?,?,?)`,
+      [eventId, mp_id, `${m.first_name} ${m.last_name}`, m.email || null,
+       m.party ? `${m.party}${m.constituency ? ', ' + m.constituency : ''}` : (m.constituency || 'Member')]);
+  } else {
+    const { name, email, org, role } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+    const c = run(`INSERT INTO contacts (name, email, org, role) VALUES (?,?,?,?)`,
+      [name, email || null, org || null, role || null]);
+    run(`INSERT OR IGNORE INTO event_invitees (event_id, contact_id, name, email, org)
+         VALUES (?,?,?,?,?)`, [eventId, c.lastInsertRowid, name, email || null, org || null]);
+  }
+  res.json({ ok: true });
+});
+
+router.post('/events/invitee/:iid/status', (req, res) => {
+  const status = String(req.body.status || '').toLowerCase();
+  if (!['shortlist', 'invited', 'accepted', 'declined', 'attended'].includes(status)) {
+    return res.status(400).json({ error: 'Bad status' });
+  }
+  run('UPDATE event_invitees SET status=? WHERE id=?', [status, req.params.iid]);
+  // Marking an MP "invited" logs it to their engagement history.
+  if (status === 'invited') {
+    const inv = get('SELECT ei.*, e.title FROM event_invitees ei JOIN pa_events e ON e.id=ei.event_id WHERE ei.id=?', [req.params.iid]);
+    if (inv && inv.mp_id) {
+      run(`INSERT INTO engagement_log (mp_id, date, type, description) VALUES (?,?,?,?)`,
+        [inv.mp_id, new Date().toISOString(), 'event invite', `Invited to: ${inv.title}`]);
+    }
+  }
+  res.json({ ok: true });
+});
+
+router.delete('/events/invitee/:iid', (req, res) => {
+  run('DELETE FROM event_invitees WHERE id=?', [req.params.iid]);
+  res.json({ ok: true });
+});
+
+router.post('/events/:id/template', (req, res) => {
+  run('UPDATE pa_events SET invite_body=? WHERE id=?', [req.body.invite_body || null, req.params.id]);
+  res.json({ ok: true });
+});
+
 // ---- Admin: manual source run ----------------------------------------------
 const SOURCE_RUNNERS = {
   hansard: () => require('../services/hansard').run(),

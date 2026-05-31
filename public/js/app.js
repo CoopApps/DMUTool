@@ -261,8 +261,59 @@
 
   document.addEventListener('input', (e) => { if (e.target.id === 'draft-text') updateCount(); });
 
+  // ---- Events & invite lists -----------------------------------------------
+  async function createEvent(ev) { ev.preventDefault();
+    const f = formData(ev.target);
+    try { const r = await postJSON('/api/events', f); location.href = '/events/' + r.id; }
+    catch (e) { alert('Error: ' + e.message); }
+    return false;
+  }
+  async function searchMembersForEvent(ev, eventId) { ev.preventDefault();
+    const q = document.getElementById('mp-q').value.trim();
+    const box = document.getElementById('mp-results');
+    if (!q) return false;
+    box.innerHTML = '<p class="muted">Searching…</p>';
+    try {
+      const res = await fetch(`/api/events/${eventId}/member-search?q=` + encodeURIComponent(q));
+      const { results } = await res.json();
+      box.innerHTML = results.length ? results.map((m) =>
+        `<div class="mp-result"><span>${m.first_name} ${m.last_name} <span class="muted">${m.party || ''}${m.constituency ? ' · ' + m.constituency : ''}${m.email ? '' : ' · no email'}</span></span>
+         <button onclick="DMU.addMemberToEvent(${eventId},${m.id},this)">Add</button></div>`).join('')
+        : '<p class="empty">No matches.</p>';
+    } catch (e) { box.innerHTML = '<p class="empty">Error: ' + e.message + '</p>'; }
+    return false;
+  }
+  async function addMemberToEvent(eventId, mpId, btn) {
+    btn.disabled = true; btn.textContent = 'Added';
+    try { await postJSON(`/api/events/${eventId}/invitee`, { mp_id: mpId }); }
+    catch (e) { alert('Error: ' + e.message); btn.disabled = false; btn.textContent = 'Add'; }
+  }
+  async function addEventContact(ev, eventId) { ev.preventDefault();
+    try { await postJSON(`/api/events/${eventId}/invitee`, formData(ev.target)); location.reload(); }
+    catch (e) { alert('Error: ' + e.message); }
+    return false;
+  }
+  async function setInviteeStatus(iid, status, reload) {
+    try { await postJSON(`/api/events/invitee/${iid}/status`, { status }); if (reload) location.reload(); }
+    catch (e) { alert('Error: ' + e.message); }
+  }
+  function removeInvitee(iid) {
+    if (!confirm('Remove from invite list?')) return;
+    fetch(`/api/events/invitee/${iid}`, { method: 'DELETE' }).then(() => location.reload());
+  }
+  async function saveInviteTemplate(ev, eventId) { ev.preventDefault();
+    try { await postJSON(`/api/events/${eventId}/template`, formData(ev.target)); location.reload(); }
+    catch (e) { alert('Error: ' + e.message); }
+    return false;
+  }
+  function copyInvite(iid) {
+    const el = document.getElementById('inv-' + iid);
+    if (el) { navigator.clipboard.writeText(el.textContent); flash('Invite copied'); }
+  }
+
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
     addContext, savePolicyUnit, clearPolicyUnit, reassess, toggleWatch, testEmail, stateOfPlay, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
+    createEvent, searchMembersForEvent, addMemberToEvent, addEventContact, setInviteeStatus, removeInvitee, saveInviteTemplate, copyInvite,
     saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

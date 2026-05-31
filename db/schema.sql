@@ -463,3 +463,46 @@ CREATE INDEX IF NOT EXISTS idx_diary_date ON diary_events(date);
 CREATE INDEX IF NOT EXISTS idx_ext_type   ON external_items(source_type);
 CREATE INDEX IF NOT EXISTS idx_match_item ON academic_matches(item_id, item_type);
 CREATE INDEX IF NOT EXISTS idx_cmatch_item ON course_matches(item_id, item_type);
+
+-- ========================= DMU public-affairs events =========================
+-- Events the PA team runs (roundtables, receptions, briefings) with a curated
+-- invite list assembled from the tool's stakeholder universe + ad-hoc contacts.
+CREATE TABLE IF NOT EXISTS pa_events (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  title       TEXT NOT NULL,
+  date        TEXT,
+  location    TEXT,
+  description TEXT,
+  invite_body TEXT,                        -- email template; {{name}} / {{event}} tokens
+  status      TEXT DEFAULT 'planning',     -- planning | invites_out | done
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+
+-- Ad-hoc contacts not already in the tool (civil servants, journalists, etc).
+CREATE TABLE IF NOT EXISTS contacts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  email       TEXT,
+  org         TEXT,
+  role        TEXT,
+  notes       TEXT,
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+
+-- An invitee on an event. Either references an MP (mp_id) or a contact
+-- (contact_id); name/email are snapshotted so the list is self-contained.
+CREATE TABLE IF NOT EXISTS event_invitees (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id   INTEGER NOT NULL,
+  mp_id      INTEGER,
+  contact_id INTEGER,
+  name       TEXT,
+  email      TEXT,
+  org        TEXT,
+  status     TEXT DEFAULT 'shortlist',     -- shortlist | invited | accepted | declined | attended
+  notes      TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(event_id, mp_id),
+  UNIQUE(event_id, contact_id)
+);
+CREATE INDEX IF NOT EXISTS idx_invitee_event ON event_invitees(event_id, status);
