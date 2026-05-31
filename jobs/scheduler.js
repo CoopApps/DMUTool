@@ -54,6 +54,7 @@ function start() {
 
   // Every 6 hours — Committees + GOV.UK consultations
   cron.schedule('0 */6 * * *', safe('committees', committees.run), opt);
+  cron.schedule('0 5 * * 1', safe('committeesRoster', () => require('../services/committeesRoster').run()), opt);
   cron.schedule('30 */6 * * *', safe('govuk', govuk.run), opt);
 
   // Daily 07:50 — morning email digest (after the 07:00–07:40 fetches)

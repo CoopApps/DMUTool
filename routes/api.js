@@ -207,6 +207,7 @@ const SOURCE_RUNNERS = {
   hansard: () => require('../services/hansard').run(),
   writtenQuestions: () => require('../services/writtenQuestions').run(),
   committees: () => require('../services/committees').run(),
+  committeesRoster: () => require('../services/committeesRoster').run(),
   whatson: () => require('../services/whatson').run(),
   feeds: () => require('../services/feeds').run(),
   guardian: () => require('../services/guardian').run(),

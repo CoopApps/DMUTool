@@ -71,6 +71,20 @@ CREATE TABLE IF NOT EXISTS external_items (
   created_at    TEXT DEFAULT (datetime('now'))
 );
 
+-- Committees roster (the standing/select committees themselves, not inquiries).
+CREATE TABLE IF NOT EXISTS committees (
+  id            INTEGER PRIMARY KEY,
+  name          TEXT,
+  house         TEXT,
+  category      TEXT,
+  departments   TEXT,
+  members_json  TEXT,
+  studies_json  TEXT,
+  relevant      INTEGER DEFAULT 0,
+  url           TEXT,
+  last_scraped  TEXT
+);
+
 -- Government consultations (GOV.UK Search API) — response opportunities with
 -- deadlines, tracked much like committee inquiries.
 CREATE TABLE IF NOT EXISTS consultations (

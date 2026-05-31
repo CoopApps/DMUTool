@@ -50,19 +50,26 @@ async function run_() {
     const events = await fetchEvents();
     for (const ev of events) {
       fetched += 1;
-      const extId = String(ev.id || ev.Id || `${ev._house}-${ev.startDate}-${ev.title}`);
-      const title = ev.description || ev.title || ev.Title || '';
-      const desc = snippet(ev.summary || ev.location || '');
+      // The What's On API uses PascalCase fields (Id, StartDate, StartTime, etc.).
+      const startDate = ev.StartDate || ev.startDate;
+      const startTime = ev.StartTime || ev.startTime || '';
+      const dateIso = startDate ? (startTime ? `${startDate.slice(0, 10)}T${startTime}` : startDate) : null;
+      const title = ev.Description || ev.description || ev.Title || ev.title
+        || ev.Category || ev.House || 'Parliamentary event';
+      const location = ev.Location || ev.location || ev.House || '';
+      const extId = String(ev.Id || ev.id || `${ev._house}-${startDate}-${title}`);
+      const desc = snippet([location, ev.Members && ev.Members.map ? ev.Members.map((m) => m.Name).join(', ') : ''].filter(Boolean).join(' · '));
       const { primary, groups } = matchText(`${title} ${desc}`);
       const matched = groups.length > 0 ? 1 : 0;
-      const ch = hash({ title, date: ev.startDate, location: ev.location, desc });
+      const ch = hash({ title, date: dateIso, location, desc });
+      ev.startDate = dateIso; ev.title = title; ev.location = location; ev.id = extId;
 
       const existing = get('SELECT id, content_hash FROM diary_events WHERE external_id = ?', [extId]);
       if (existing) {
         if (existing.content_hash !== ch) {
           run(`UPDATE diary_events SET title=?, description=?, date=?, house=?, event_type=?,
                location=?, url=?, keyword_group=?, keyword_match=?, is_new=?, content_hash=? WHERE id=?`,
-            [title, desc, ev.startDate || ev.date, ev._house, ev.type || ev.category || 'Event',
+            [title, desc, ev.startDate || ev.date, ev._house, ev.Category || ev.type || ev.category || 'Event',
              ev.location || null, ev.url || null, primary, matched, matched, ch, existing.id]);
           if (matched) newBadge += 1;
         }
@@ -71,7 +78,7 @@ async function run_() {
           (external_id, date, house, event_type, title, description, location, url,
            keyword_group, keyword_match, is_new, content_hash)
           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-          [extId, ev.startDate || ev.date, ev._house, ev.type || ev.category || 'Event',
+          [extId, ev.startDate || ev.date, ev._house, ev.Category || ev.type || ev.category || 'Event',
            title, desc, ev.location || null, ev.url || null, primary, matched, matched, ch]);
         created += 1;
         if (matched) newBadge += 1;

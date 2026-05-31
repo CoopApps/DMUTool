@@ -63,8 +63,29 @@ router.get('/', (req, res) => {
     <a href="/committees?filter=matched" class="${filter === 'matched' ? 'active' : ''}">Keyword-matched only</a>
   </div>`;
 
+  // DMU-relevant committees and what they're currently investigating.
+  const committees = all(`SELECT * FROM committees WHERE relevant = 1 ORDER BY name`);
+  const rosterCards = committees.map((c) => {
+    let members = [], studies = [];
+    try { members = JSON.parse(c.members_json || '[]'); } catch { /* ignore */ }
+    try { studies = JSON.parse(c.studies_json || '[]'); } catch { /* ignore */ }
+    const chair = members.find((m) => /chair/i.test(m.role || ''));
+    return `<article class="card">
+      <h3><a href="${esc(c.url || '#')}" target="_blank" rel="noopener">${esc(c.name)}</a>
+        <span class="dept">${esc(c.house || '')}${c.departments ? ' · scrutinises ' + esc(c.departments) : ''}</span></h3>
+      ${chair ? `<p class="meta"><b>Chair:</b> ${esc(chair.name)}${chair.party ? ` (${esc(chair.party)})` : ''} · ${members.length} members</p>` : `<p class="meta">${members.length} members</p>`}
+      ${studies.length ? `<details><summary>Currently investigating (${studies.length})</summary><ul class="intel">${
+        studies.map((s) => `<li>${esc(s.title)}${s.open ? ' <span class="kw-pill">accepting evidence</span>' : ''}</li>`).join('')}</ul></details>` : ''}
+      ${members.length ? `<details><summary>Membership</summary><ul class="intel">${
+        members.map((m) => `<li>${esc(m.name)} <span class="dept">${esc(m.role || '')}${m.party ? ' · ' + esc(m.party) : ''}</span></li>`).join('')}</ul></details>` : ''}
+    </article>`;
+  }).join('');
+
   const body = `<div class="page-head"><h1>Committee tracker</h1>${toggle}</div>
-    ${inquiries.length ? inquiries.map(card).join('') : '<p class="empty">No open inquiries on record. Run a committees fetch from Admin.</p>'}`;
+    <h2>Open calls for evidence <span class="count">${inquiries.length}</span></h2>
+    ${inquiries.length ? inquiries.map(card).join('') : '<p class="empty">No calls for evidence open on DMU topics right now. New ones appear here automatically.</p>'}
+    <h2 style="margin-top:30px">DMU-relevant committees <span class="count">${committees.length}</span></h2>
+    ${rosterCards || '<p class="empty">Run the committeesRoster fetch from Admin to populate committee membership and current inquiries.</p>'}`;
 
   res.send(layout({ title: 'Committees', body, active: '/committees' }));
 });

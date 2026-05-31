@@ -67,6 +67,8 @@ router.get('/:id', async (req, res) => {
   let votes = [], interests = [], twfyProfile = null;
   try { votes = await mpProfile.getVotingRecord(mp); } catch { /* ignore */ }
   try { interests = await mpProfile.getInterests(mp); } catch { /* ignore */ }
+  let contact = null;
+  try { contact = await mpProfile.getContact(mp); if (contact && contact.email) mp.email = mp.email || contact.email; } catch { /* ignore */ }
   try { twfyProfile = await twfy.getProfile(mp); } catch { /* ignore */ }
 
   const logRows = log.map((l) => `<li><b>${esc((l.date||'').slice(0,10))}</b> ${esc(l.type||'')} — ${esc(l.description||'')}
@@ -80,7 +82,9 @@ router.get('/:id', async (req, res) => {
       <div class="mp-card">
         ${mp.photo_url ? `<img src="${esc(mp.photo_url)}" alt="" class="mp-photo">` : ''}
         <p><b>${esc(mp.party||'')}</b><br>${esc(mp.constituency||'')}</p>
-        <p>${mp.email ? `<a href="mailto:${esc(mp.email)}">${esc(mp.email)}</a>` : ''}</p>
+        <p>${mp.email ? `<a href="mailto:${esc(mp.email)}">${esc(mp.email)}</a>` : '<span class="empty">no email on file</span>'}
+          ${contact && contact.phone ? `<br>${esc(contact.phone)}` : ''}
+          ${contact && contact.address ? `<br><span class="dept">${esc(contact.address)}</span>` : ''}</p>
         <div class="card-actions">
           <button onclick="DMU.openDraft(${contributions[0] ? contributions[0].id : 0},'parliamentary_item','mp_email',${mp.id})">Draft email</button>
         </div>

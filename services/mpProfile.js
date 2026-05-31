@@ -130,4 +130,29 @@ async function refreshAll({ limit = 150 } = {}) {
   return { fetched: mps.length, created: done, error };
 }
 
-module.exports = { getVotingRecord, getInterests, enrichFromMembers, refreshAll };
+/** Fetch + cache an MP's contact details (parliamentary email/phone/address)
+ *  from the Members API, writing the email back onto the mps row. 30-day TTL. */
+async function getContact(mp) {
+  const cached = readCache(mp.id, 'contact', 30);
+  if (cached) return cached;
+  const memberId = await resolveMemberId(mp);
+  if (!memberId) return null;
+  let contact = null;
+  try {
+    const data = await getJson(`https://members-api.parliament.uk/api/Members/${memberId}/Contact`);
+    const items = (data.items || data.value || []).map((x) => x.value || x);
+    const office = items.find((i) => /office|parliamentary/i.test(i.type || '')) || items[0] || {};
+    const website = items.find((i) => i.isWebAddress && /website/i.test(i.type || ''));
+    contact = {
+      email: office.email || null,
+      phone: office.phone || null,
+      address: [office.line1, office.line2, office.line5, office.postcode].filter(Boolean).join(', '),
+      website: website ? (website.line1 || website.email) : null,
+    };
+    if (contact.email) run('UPDATE mps SET email = COALESCE(NULLIF(email,""), ?) WHERE id = ?', [contact.email, mp.id]);
+  } catch { /* leave null */ }
+  if (contact) writeCache(mp.id, 'contact', contact);
+  return contact;
+}
+
+module.exports = { getVotingRecord, getInterests, getContact, enrichFromMembers, refreshAll };
