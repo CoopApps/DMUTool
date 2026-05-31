@@ -195,6 +195,25 @@ body.dashmode .dash-kpis { margin: 0 2px 10px; }
 .state-of-play button { background: linear-gradient(180deg,#16315f,var(--dmu)); }
 .sop-text { background: #f4f8ff; border-left: 4px solid var(--dmu); border-radius: 0 8px 8px 0;
   padding: 12px 16px; font-size: 15px; line-height: 1.5; color: #1c2333; }
+/* Fixed-height dashboard: to-do fills + inner-scrolls; aware band pinned below. */
+.dash-split { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.aware-band { flex: 0 0 30vh; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+.aware-band .panel { min-height: 0; }
+/* The "Do today" prioritised action list */
+.todo { list-style: none; counter-reset: todo; margin: 0; padding: 0; }
+.todo-item { display: flex; align-items: center; gap: 12px; padding: 11px 8px; border-bottom: 1px solid var(--line); }
+.todo-item:last-child { border-bottom: 0; }
+.todo-flag { flex: 0 0 78px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; padding: 4px 6px; border-radius: 5px; color: #fff; }
+.todo-flag.red { background: var(--red); } .todo-flag.amber { background: var(--amber); } .todo-flag.green { background: var(--green); }
+.todo-body { flex: 1 1 auto; font-size: 14px; line-height: 1.4; }
+.todo-body a { text-decoration: none; }
+.todo-body a:hover b { text-decoration: underline; }
+.todo-act { flex: 0 0 auto; }
+.btnlink { display: inline-block; background: linear-gradient(180deg,#16315f,var(--dmu)); color: #fff;
+  border-radius: 7px; padding: 8px 14px; font-size: 13px; font-weight: 600; text-decoration: none; box-shadow: var(--shadow-sm); }
+.todo-clear { padding: 24px; text-align: center; }
+.aware-head { display: none; }
 /* Admin setup checklist */
 .setup-list { list-style: none; margin: 0; padding: 0; }
 .setup-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
