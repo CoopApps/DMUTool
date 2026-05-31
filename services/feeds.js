@@ -13,6 +13,8 @@ const { db, all, get, run, logFetch } = require('../db/database');
 const { matchText } = require('../lib/keywords');
 const { scrapeListing } = require('./scraper');
 const { sleep, USER_AGENT } = require('../lib/http');
+const matcher = require('./matcher');
+const relevance = require('./relevance');
 
 const parser = new RssParser({ headers: { 'User-Agent': USER_AGENT }, timeout: 15000 });
 
@@ -38,10 +40,18 @@ function insertItem({ source_id, source_name, source_type, title, date, url, sum
   if (!url) return false;
   if (get('SELECT id FROM external_items WHERE url = ?', [url])) return false;
   const { groups } = matchText(`${title} ${summary}`);
-  run(`INSERT INTO external_items
+  const info = run(`INSERT INTO external_items
     (source_id, source_name, source_type, title, date, url, summary, keyword_groups)
     VALUES (?,?,?,?,?,?,?,?)`,
     [String(source_id), source_name, source_type, title, date, url, summary, groups.join(',')]);
+  // Items that hit a tracked keyword get the smart second-tier: match DMU
+  // experts and enqueue the Claude relevance judgement so Sector watch can be
+  // curated, not just listed. Items with no keyword hit are left unscored.
+  if (groups.length && info && info.lastInsertRowid) {
+    const id = info.lastInsertRowid;
+    try { matcher.matchItem(id, 'external_item'); } catch { /* non-fatal */ }
+    try { relevance.enqueue('external_item', id, 4); } catch { /* non-fatal */ }
+  }
   return true;
 }
 

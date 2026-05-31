@@ -156,6 +156,16 @@ h2 { font-size: 18px; }
 /* Story extract on sector / UA-peer cards — enough body text to judge relevance. */
 .story { color: #2a3142; font-size: 13.5px; line-height: 1.5; margin: 6px 0 8px; }
 .story.empty { color: var(--muted); font-style: italic; }
+/* Sector watch dashboard: Claude's relevance verdict, called out on each card. */
+.dmu-take { background: #f4f8ff; border-left: 3px solid var(--dmu); border-radius: 0 6px 6px 0;
+  padding: 7px 11px; margin: 8px 0 4px; color: #243; font-size: 13px; line-height: 1.45; }
+.dmu-take b { color: var(--dmu); }
+.sector-card .card-head .tag { margin-left: auto; }
+/* KPI strip sits between the dash header and the panel; doesn't scroll. */
+body.dashmode .dash-kpis { margin: 0 2px 10px; }
+.sector-tabs { max-width: 60vw; overflow-x: auto; flex-wrap: nowrap; }
+.sector-tabs::-webkit-scrollbar { height: 5px; }
+.assessing-note { padding: 10px 12px; }
 .card-actions button, .filters button, form button, .draft-actions button {
   background: linear-gradient(180deg, #16315f, var(--dmu)); color: #fff; border: 0; border-radius: 7px;
   padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; letter-spacing: .01em;
