@@ -58,23 +58,32 @@ async function scoreItem(itemType, itemId) {
 
   const academicsBlock = matches.length
     ? matches.map((a) => `${a.name} (${a.department})`).join('; ')
-    : '(no keyword-matched academics)';
+    : '(no DMU academic with genuine expertise on this)';
 
   const system =
-    'You triage parliamentary and policy content for the De Montfort University (DMU) public affairs team. ' +
-    'Score how much this is in DMU\'s INTEREST overall. DMU\'s interest has THREE CO-EQUAL facets — weigh them together, none is subordinate to another:\n' +
-    '(1) Institutional impact — affects DMU as an institution: funding, tuition fees, OfS regulation, international student recruitment and visas, research funding settlements, staff pay/pensions, operations, reputation;\n' +
-    '(2) Sector / University Alliance alignment — technical and professional HE, skills, degree apprenticeships, applied research, civic and regional growth;\n' +
-    '(3) Academic expertise & influence — DMU has genuine expertise to contribute, lead the debate, submit evidence or raise its profile. DMU\'s own expertise IS an institutional interest, equal to the others.\n' +
-    'HIGH if strong on ANY facet; MEDIUM if moderate; LOW/NONE only if genuinely incidental — a passing keyword mention in an unrelated context. ' +
-    `DMU expertise areas: ${dmuExpertise()}.\nDMU institutional interest profile:\n${interestsProfile()}\n` +
+    'You are the curation filter for the De Montfort University (DMU) public affairs team. DMU is a UK university; ' +
+    'its public affairs work has exactly TWO functions, and an item is only relevant if it serves one of them:\n' +
+    '(A) CORPORATE — it affects DMU as an institution or the HE sector it operates in: university funding, tuition fees, ' +
+    'OfS regulation, international student recruitment and visas, research funding settlements, staff pay/pensions, ' +
+    'free speech duties, the University Alliance / professional-and-technical-HE agenda, skills and degree apprenticeships, ' +
+    'DMU\'s civic role in Leicester.\n' +
+    '(B) POLICY IMPACT — it falls in an area where DMU has GENUINE research/policy STRENGTH and could credibly influence ' +
+    'the debate or give evidence. DMU\'s strengths: ' + dmuExpertise() + '.\n\n' +
+    'DEFAULT IS "none". Most parliamentary business is NOT DMU\'s concern — be a strict curator, not a keyword matcher. ' +
+    'A topic merely being mentioned, or a loose word overlap with an academic, is NOT relevance. If DMU is neither ' +
+    'affected as an institution NOR a credible expert voice, return "none" (e.g. a question on fisheries: DMU is not a ' +
+    'fishing body and has no fisheries expertise → none). Naming a non-expert academic would damage DMU\'s credibility, ' +
+    'so only treat the policy-impact facet as present if a listed academic genuinely works on this exact subject.\n' +
+    'HIGH = clearly serves a function and is actionable; MEDIUM = genuinely relevant but lower priority; ' +
+    'LOW = tangential; NONE = not DMU\'s business.\n' +
+    `DMU institutional context:\n${interestsProfile()}\n` +
     'Return JSON only.';
 
   const user =
     `Item title: ${item.title}\n` +
     `Item text: ${(item.text || '').slice(0, 2500)}\n` +
-    `DMU academics whose expertise matches (informs facet 3): ${academicsBlock}\n\n` +
-    'Return {"level":"high|medium|low|none","angles":["institutional"|"sector"|"expertise"],"rationale":"one sentence naming which DMU interest(s) are at stake, or why it is incidental"}';
+    `DMU academics keyword-flagged as possibly relevant (judge whether any GENUINELY works on this — ignore loose overlaps): ${academicsBlock}\n\n` +
+    'Return {"level":"high|medium|low|none","angles":["corporate"|"policy"],"rationale":"one sentence: which function it serves and why, or why DMU has no stake"}';
 
   let parsed;
   try {
@@ -88,7 +97,8 @@ async function scoreItem(itemType, itemId) {
   const level = ['high', 'medium', 'low', 'none'].includes((parsed.level || '').toLowerCase())
     ? parsed.level.toLowerCase() : 'low';
   const score = LEVEL_SCORE[level];
-  const LABELS = { institutional: 'Institutional', sector: 'Sector/UA', expertise: 'Expertise' };
+  const LABELS = { corporate: 'Corporate', policy: 'Policy impact',
+    institutional: 'Corporate', sector: 'Corporate', expertise: 'Policy impact' };
   const angles = (Array.isArray(parsed.angles) ? parsed.angles : [parsed.angle])
     .map((a) => LABELS[String(a || '').toLowerCase()]).filter(Boolean);
   const rationale = (angles.length ? `[${angles.join(' + ')}] ` : '') + (parsed.rationale || '');

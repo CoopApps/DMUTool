@@ -74,6 +74,11 @@ function matchItem(itemId, itemType) {
     }
   }
 
+  // Expertise = a genuine match on the person's OWN research interests and
+  // publications. Department/course overlap is coincidence, not expertise, so it
+  // can support but never by itself qualify someone. A real floor prevents the
+  // "one shared word → named as an expert" failure (e.g. fisheries).
+  const MIN_STRENGTH = parseInt(process.env.MATCH_MIN_STRENGTH || '2', 10);   // distinct topical hits on profile/pubs
   const scored = [];
   for (const a of academics) {
     let pubTitles = '';
@@ -84,19 +89,24 @@ function matchItem(itemId, itemType) {
         : '';
     } catch { /* ignore malformed json */ }
 
-    const courseTitles = (deptCourses[(a.department || '').toLowerCase().trim()] || []).join(' ');
+    // Strength signals only: research interests (profile) + publications.
+    const profileHits = countHits(a.profile_text, terms);
+    const pubHits = countHits(pubTitles, terms);
+    const strength = profileHits + pubHits;     // distinct topical terms on their own work
+    if (strength < MIN_STRENGTH && (fb[a.id] || 0) <= 0) continue;   // below the expertise floor — not an expert
 
+    const courseTitles = (deptCourses[(a.department || '').toLowerCase().trim()] || []).join(' ');
     const score =
-      countHits(a.profile_text, terms) * 3 +
-      countHits(pubTitles, terms) * 2 +
+      profileHits * 3 + pubHits * 2 +
       countHits(a.department, terms) * 1 +
       countHits(courseTitles, terms) * 1 +
-      (fb[a.id] || 0) * 2;   // human feedback nudges ranking
+      (fb[a.id] || 0) * 2;
 
-    if (score > 0) scored.push({ academic_id: a.id, name: a.name, department: a.department, score });
+    scored.push({ academic_id: a.id, name: a.name, department: a.department, score, strength });
   }
 
   scored.sort((x, y) => y.score - x.score);
+  // Cap at 5, but only keep those clearing the floor (no padding the list).
   const top = scored.slice(0, 5);
 
   // Persist (replace existing keyword matches for this item).

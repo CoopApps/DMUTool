@@ -64,6 +64,8 @@ a { color: var(--dmu); }
 .tag.green { background: #e3f4ea; color: var(--green); } .tag.amber { background: #fdf0db; color: var(--amber); }
 .tag.grey { background: #eee; color: #666; } .tag.pink { background: #fde6f1; color: var(--dmu-accent); }
 @media (max-width: 700px) { .drow { grid-template-columns: 1fr; gap: 2px; } .drow-meta, .drow-tags { font-size: 11px; } }
+.empty-digest { background: #fff; border: 1px dashed var(--line); border-radius: 8px; padding: 28px; text-align: center; margin-top: 16px; }
+.empty-digest b { font-size: 16px; }
 @media (max-width: 800px) { .reader-grid { grid-template-columns: 1fr; } }
 .badge { background: var(--dmu-accent); color: #fff; border-radius: 10px; font-size: 11px;
   padding: 1px 6px; margin-left: 4px; }

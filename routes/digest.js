@@ -32,8 +32,14 @@ function expertisePill(type, id) {
 function flagState(type, id) {
   return get('SELECT flagged, ignored FROM item_flags WHERE item_type=? AND item_id=?', [type, id]) || {};
 }
+// Ruthless gate: an item earns a place only if the Claude curation gate passed
+// it at high/medium. Items not yet scored are held back (shown under "pending"),
+// NOT surfaced as if relevant. ?show=all reveals everything for auditing.
 function interestOk(row) {
-  return !row.relevance_checked || ['high', 'medium'].includes(row.relevance_level);
+  return ['high', 'medium'].includes(row.relevance_level);
+}
+function pending(row) {
+  return !row.relevance_checked;
 }
 
 /** A dense one-line row (the new default look). */
@@ -77,48 +83,65 @@ router.get('/', (req, res) => {
      WHERE evidence_status = 'AcceptingEvidence'
        AND (COALESCE(date_opened, created_at) >= date('now','-30 days') OR is_new = 1)
        ${notIgnored('committee_inquiry', 'committee_inquiries')}`
-  ).filter((q) => showAll || interestOk(q))
-   .map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '', title: q.inquiry_title }));
+  ).map((q) => ({ ...q, _kind: 'committee', _sort: q.date_opened || q.created_at || '', title: q.inquiry_title }));
+
+  const everything = [...inquiries, ...rawItems];
+  // Ruthless curation: only items the gate passed (high/medium). Show-all bypasses.
+  const passed = showAll ? everything : everything.filter(interestOk);
+  const pendingCount = everything.filter(pending).length;
 
   const groups = all('SELECT name FROM keyword_groups ORDER BY name');
   const byGroup = {};
-  for (const r of [...inquiries, ...rawItems]) {
+  for (const r of passed) {
     if (!r.keyword_group) continue;
     (byGroup[r.keyword_group] = byGroup[r.keyword_group] || []).push(r);
   }
+  const totalShown = passed.length;
 
-  // Sort groups by activity (most items first); collapse empty + low-priority by default.
+  // Only groups with curated items (no empty filler sections).
   const ordered = groups
     .map((g) => ({ name: g.name, list: (byGroup[g.name] || []).sort((a, b) => (b._sort || '').localeCompare(a._sort || '')) }))
+    .filter((g) => g.list.length > 0)
     .sort((a, b) => b.list.length - a.list.length);
 
-  const jumpNav = `<nav class="topic-jump">${ordered.map((g) =>
-    `<a href="#g-${g.name.replace(/\W/g, '')}" class="${g.list.length ? '' : 'muted'}">${esc(g.name)} <b>${g.list.length}</b></a>`).join('')}</nav>`;
+  const jumpNav = ordered.length > 1 ? `<nav class="topic-jump">${ordered.map((g) =>
+    `<a href="#g-${g.name.replace(/\W/g, '')}">${esc(g.name)} <b>${g.list.length}</b></a>`).join('')}</nav>` : '';
 
   const sections = ordered.map((g) => {
     const id = g.name.replace(/\W/g, '');
-    const open = g.list.length > 0 && g.list.length <= 60; // keep huge groups collapsed
-    const rows = g.list.length ? g.list.map(row).join('') : '<p class="empty">Nothing in the last 14 days.</p>';
+    const open = g.list.length <= 40;
     return `<section class="group ${open ? '' : 'collapsed'}" id="g-${id}">
       <h2 onclick="this.parentElement.classList.toggle('collapsed')">${esc(g.name)} <span class="count">${g.list.length}</span></h2>
-      <div class="group-body drows">${rows}</div>
+      <div class="group-body drows">${g.list.map(row).join('')}</div>
     </section>`;
   }).join('');
 
+  const emptyState = `<div class="empty-digest">
+    <p><b>No items meet DMU's public-affairs threshold today.</b></p>
+    <p class="muted">The digest only shows items that affect DMU corporately or where DMU has genuine policy strength — not everything that mentions a keyword.
+    ${pendingCount ? `${pendingCount} item${pendingCount === 1 ? '' : 's'} still being assessed.` : ''}
+    <a href="/digest?show=all">Show everything (unfiltered)</a> · <a href="/search">Search →</a></p>
+  </div>`;
+
   const relToggle = `<div class="filters">
-    <a href="/digest" class="${showAll ? '' : 'active'}">Relevant only</a>
-    <a href="/digest?show=all" class="${showAll ? 'active' : ''}">Show all</a>
+    <a href="/digest" class="${showAll ? '' : 'active'}">Curated</a>
+    <a href="/digest?show=all" class="${showAll ? 'active' : ''}">Show all (unfiltered)</a>
     <a href="/search">Search everything →</a>
   </div>`;
+
+  const summary = totalShown
+    ? `<p class="count">${totalShown} item${totalShown === 1 ? '' : 's'} relevant to DMU${pendingCount ? ` · ${pendingCount} being assessed` : ''}</p>`
+    : '';
 
   const body = `<div class="page-head"><h1>Daily digest</h1>
     <form class="expert-box" onsubmit="return DMU.quickExpert(event)">
       <input type="text" id="quick-expert" placeholder="Who at DMU works on…?"><button>Find</button>
     </form></div>
     ${relToggle}
+    ${summary}
     ${jumpNav}
-    ${sections}
-    <footer class="updated">Last updated ${lastUpdated()} · procedural debates (King's Speech, points of order, etc.) hidden · repeated contributions collapsed</footer>`;
+    ${sections || emptyState}
+    <footer class="updated">Last updated ${lastUpdated()} · curated to DMU's two public-affairs functions (corporate impact + policy strength) · procedural debates and loose keyword matches excluded</footer>`;
 
   res.send(layout({ title: 'Digest', body, active: '/digest' }));
 });
