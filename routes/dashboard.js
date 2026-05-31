@@ -86,9 +86,12 @@ function buildActions() {
     });
   }
 
-  // Sort by urgency (soonest/most-overdue first), cap the list.
-  return actions.sort((a, b) => a.urgency - b.urgency).slice(0, 12);
+  // Sort by urgency (soonest/most-overdue first); grouping handled at render.
+  return actions.sort((a, b) => a.urgency - b.urgency);
 }
+
+// Order of action categories when grouping "by type".
+const CAT_ORDER = ['Respond', 'Follow up', 'Engage'];
 
 /** Topic momentum — last 14d vs prior 14d across all relevant sources. */
 function risingTopics() {
@@ -135,14 +138,33 @@ router.get('/', (req, res) => {
 
   // ===== THE MAIN EVENT: what you can do today =============================
   const actions = buildActions();
-  const todoBody = actions.length ? `<ol class="todo">${actions.map((a) => `
-    <li class="todo-item">
+  const groupBy = req.query.by === 'type' ? 'type' : 'urgency';   // toggle
+
+  const itemHtml = (a) => `<li class="todo-item">
       <span class="todo-flag ${a.cls}">${esc(a.cat)}</span>
       <span class="todo-body"><a href="${a.link}"><b>${a.lead}</b></a> — ${a.detail}</span>
       <span class="todo-act">${a.btn}</span>
-    </li>`).join('')}</ol>`
-    : `<div class="todo-clear"><p><b>Nothing demands action today.</b></p>
+    </li>`;
+
+  let todoBody;
+  if (!actions.length) {
+    todoBody = `<div class="todo-clear"><p><b>Nothing demands action today.</b></p>
        <p class="muted">No closing deadlines, overdue follow-ups or untouched active MPs. Scan "be aware of" below, or open the <a href="/action">command centre</a>.</p></div>`;
+  } else if (groupBy === 'type') {
+    todoBody = CAT_ORDER.map((cat) => {
+      const list = actions.filter((a) => a.cat === cat);   // already urgency-sorted within
+      if (!list.length) return '';
+      return `<div class="todo-group"><h3 class="todo-grouphd">${esc(cat)} <span class="count">${list.length}</span></h3>
+        <ol class="todo">${list.map(itemHtml).join('')}</ol></div>`;
+    }).join('');
+  } else {
+    todoBody = `<ol class="todo">${actions.slice(0, 14).map(itemHtml).join('')}</ol>`;
+  }
+
+  const byToggle = `<div class="filters todo-toggle">
+    <a href="/dashboard" class="${groupBy === 'urgency' ? 'active' : ''}">By urgency</a>
+    <a href="/dashboard?by=type" class="${groupBy === 'type' ? 'active' : ''}">By type</a>
+  </div>`;
 
   // AI "where to focus" line — held back until Claude is funded.
   const focusLine = claudeOn
@@ -182,7 +204,7 @@ router.get('/', (req, res) => {
     ${focusLine}
     <div class="dash-split">
       ${panel({ title: '✅ Do today — to make DMU public affairs more impactful', count: actions.length,
-        body: todoBody, pad: true, style: 'flex:1 1 auto; min-height:0;' })}
+        actions: byToggle, body: todoBody, pad: true, style: 'flex:1 1 auto; min-height:0;' })}
       <div class="aware-band">
         ${panel({ title: '📈 Rising topics', count: rising.length,
           actions: '<span class="muted">2wk vs prior</span>', body: risingBody, pad: true })}
