@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get, ageNewFlags } = require('../db/database');
-const { layout, esc, badge } = require('../lib/render');
+const { layout, panel, esc, badge } = require('../lib/render');
 const matcher = require('../services/matcher');
 
 function lastUpdated() {
@@ -133,17 +133,21 @@ router.get('/', (req, res) => {
     ? `<p class="count">${totalShown} item${totalShown === 1 ? '' : 's'} relevant to DMU${pendingCount ? ` · ${pendingCount} being assessed` : ''}</p>`
     : '';
 
-  const body = `<div class="page-head"><h1>Daily digest</h1>
-    <form class="expert-box" onsubmit="return DMU.quickExpert(event)">
-      <input type="text" id="quick-expert" placeholder="Who at DMU works on…?"><button>Find</button>
-    </form></div>
-    ${relToggle}
-    ${summary}
+  const body = `<div class="dash-head"><h1>Daily digest</h1>
+      <span class="sub">${summary.replace(/<[^>]+>/g, '')}</span>
+      <span class="spacer"></span>
+      ${relToggle}
+      <form class="expert-box" onsubmit="return DMU.quickExpert(event)">
+        <input type="text" id="quick-expert" placeholder="Who at DMU works on…?"><button>Find</button>
+      </form></div>
     ${jumpNav}
-    ${sections || emptyState}
-    <footer class="updated">Last updated ${lastUpdated()} · curated to DMU's two public-affairs functions (corporate impact + policy strength) · procedural debates and loose keyword matches excluded</footer>`;
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      ${panel({ title: 'Curated for DMU', count: totalShown,
+        actions: `<span class="muted">updated ${lastUpdated()}</span>`,
+        body: `<div class="pad" style="padding:10px 12px">${sections || emptyState}</div>` })}
+    </div>`;
 
-  res.send(layout({ title: 'Digest', body, active: '/digest' }));
+  res.send(layout({ title: 'Digest', body, active: '/digest', dashboard: true }));
 });
 
 module.exports = router;

@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { all, get, run, ageNewFlags } = require('../db/database');
-const { layout, esc } = require('../lib/render');
+const { layout, panel, esc } = require('../lib/render');
 const matcher = require('../services/matcher');
 
 function deadlineClass(wdr) {
@@ -81,13 +81,19 @@ router.get('/', (req, res) => {
     </article>`;
   }).join('');
 
-  const body = `<div class="page-head"><h1>Committee tracker</h1>${toggle}</div>
-    <h2>Open calls for evidence <span class="count">${inquiries.length}</span></h2>
-    ${inquiries.length ? inquiries.map(card).join('') : '<p class="empty">No calls for evidence open on DMU topics right now. New ones appear here automatically.</p>'}
-    <h2 style="margin-top:30px">DMU-relevant committees <span class="count">${committees.length}</span></h2>
-    ${rosterCards || '<p class="empty">Run the committeesRoster fetch from Admin to populate committee membership and current inquiries.</p>'}`;
+  const body = `<div class="dash-head"><h1>Committees</h1>
+      <span class="sub">open calls for evidence + DMU-relevant committee membership</span>
+      <span class="spacer"></span>${toggle}</div>
+    <div class="dashgrid" style="grid-template-columns:1fr 1fr;">
+      ${panel({ title: 'Open calls for evidence', count: inquiries.length,
+        body: inquiries.length ? inquiries.map(card).join('') : '<p class="empty">No calls for evidence open on DMU topics right now. New ones appear here automatically.</p>',
+        pad: true })}
+      ${panel({ title: 'DMU-relevant committees', count: committees.length,
+        body: rosterCards || '<p class="empty">Run the committeesRoster fetch from Admin to populate committee membership and current inquiries.</p>',
+        pad: true })}
+    </div>`;
 
-  res.send(layout({ title: 'Committees', body, active: '/committees' }));
+  res.send(layout({ title: 'Committees', body, active: '/committees', dashboard: true }));
 });
 
 module.exports = router;

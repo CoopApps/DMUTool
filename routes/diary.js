@@ -74,15 +74,19 @@ router.get('/', async (req, res) => {
     </div>`;
   }));
 
-  const body = `<div class="page-head"><h1>Parliamentary diary</h1>
-    <div class="weeknav">
-      <a href="/diary?week=${offset-1}">← Previous</a>
-      <span>${weekStart} – ${weekEnd}</span>
-      <a href="/diary?week=${offset+1}">Next →</a>
-    </div></div>
-    <div class="diary-grid">${cols.join('')}</div>`;
+  const body = `<div class="dash-head"><h1>Parliamentary diary</h1>
+      <span class="sub">${weekStart} – ${weekEnd}${offset === 0 ? ' · this week' : ''}</span>
+      <span class="spacer"></span>
+      <div class="weeknav">
+        <a href="/diary?week=${offset-1}">← Previous</a>
+        <a href="/diary?week=0">Today</a>
+        <a href="/diary?week=${offset+1}">Next →</a>
+      </div></div>
+    <div class="dashgrid" style="grid-template-rows:1fr;">
+      <div class="diary-grid">${cols.join('')}</div>
+    </div>`;
 
-  res.send(layout({ title: 'Diary', body, active: '/diary' }));
+  res.send(layout({ title: 'Diary', body, active: '/diary', dashboard: true }));
 });
 
 module.exports = router;
