@@ -11,6 +11,24 @@ const router = express.Router();
 const { all } = require('../db/database');
 const { layout, panel, esc } = require('../lib/render');
 
+// Relevant items whose deadline closed recently with no recorded DMU response —
+// institutional-memory backstop so opportunities don't silently lapse.
+const RELEVANT = `(relevance_checked = 0 OR relevance_level IN ('high','medium'))`;
+function missedOpportunities() {
+  const noResponse = `submitted = 0 AND (contributors IS NULL OR contributors = '') AND (submission_url IS NULL OR submission_url = '')`;
+  const inq = all(
+    `SELECT 'Committee' AS kind, committee_name AS body, inquiry_title AS title, deadline, url
+     FROM committee_inquiries
+     WHERE deadline IS NOT NULL AND date(deadline) < date('now') AND date(deadline) >= date('now','-90 days')
+       AND ${RELEVANT} AND ${noResponse}`);
+  const cons = all(
+    `SELECT 'Consultation' AS kind, organisation AS body, title, deadline, url
+     FROM consultations
+     WHERE deadline IS NOT NULL AND date(deadline) < date('now') AND date(deadline) >= date('now','-90 days')
+       AND ${RELEVANT} AND ${noResponse}`);
+  return [...inq, ...cons].sort((a, b) => (b.deadline || '').localeCompare(a.deadline || ''));
+}
+
 router.get('/', (req, res) => {
   const filter = req.query.filter || 'all'; // all | submitted | inprogress
 
@@ -47,13 +65,27 @@ router.get('/', (req, res) => {
     <a href="/submissions?filter=inprogress" class="${filter === 'inprogress' ? 'active' : ''}">In progress</a>
   </div>`;
 
+  const missed = missedOpportunities();
+  const missedRows = missed.map((r) => `<tr>
+    <td><span class="src-badge ${r.kind === 'Committee' ? 'committee' : 'written'}">${esc(r.kind)}</span></td>
+    <td>${esc(r.body || '')}</td>
+    <td><a href="${esc(r.url || '#')}" target="_blank" rel="noopener">${esc(r.title || '')}</a></td>
+    <td><span class="wdr grey">closed ${esc((r.deadline || '').slice(0, 10))}</span></td>
+  </tr>`).join('');
+
   const body = `<div class="dash-head"><h1>Submissions register</h1>
       <span class="sub">evidence DMU has submitted or is tracking</span>
       <span class="spacer"></span>${toggle}</div>
-    <div class="dashgrid" style="grid-template-rows:1fr;">
+    <div class="dashgrid" style="grid-template-columns:1fr;grid-template-rows:auto auto;">
       ${panel({ title: 'Records', count: rows.length,
         body: rows.length ? `<table><thead><tr><th>Type</th><th>Body</th><th>Title</th><th>Deadline</th><th>Status</th><th>Contributors</th><th>Document</th></tr></thead><tbody>${tableRows}</tbody></table>`
           : '<p class="empty">No submissions logged yet. Use the submission tracker on a committee inquiry or consultation.</p>',
+        pad: true })}
+      ${panel({ title: '⚠ Missed opportunities (closed, no recorded response)', count: missed.length,
+        actions: '<span class="muted">last 90 days · relevant items only</span>',
+        body: missed.length
+          ? `<table><thead><tr><th>Type</th><th>Body</th><th>Title</th><th>Closed</th></tr></thead><tbody>${missedRows}</tbody></table>`
+          : '<p class="empty">No relevant deadlines have lapsed unanswered in the last 90 days. 👍</p>',
         pad: true })}
     </div>`;
 
