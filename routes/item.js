@@ -65,8 +65,9 @@ router.get('/:type/:id', (req, res) => {
   const events = m.events && m.events.length ? `<section><h2>DMU events (context)</h2><ul class="intel">${
     m.events.map((e) => `<li>${esc(e.title)} <span class="dept">${esc((e.date || '').slice(0, 10))}</span></li>`).join('')}</ul></section>` : '';
 
-  const deadlineBadge = it.wdr != null
-    ? `<span class="wdr ${it.wdr < 7 ? 'red' : it.wdr <= 14 ? 'amber' : 'green'}">${it.wdr} working days to deadline</span>` : '';
+  const deadlineBadge = it.wdr == null ? ''
+    : it.wdr < 0 ? '<span class="wdr grey">deadline passed</span>'
+    : `<span class="wdr ${it.wdr < 7 ? 'red' : it.wdr <= 14 ? 'amber' : 'green'}">${it.wdr} working day${it.wdr === 1 ? '' : 's'} to deadline</span>`;
 
   const body = `<div class="page-head"><h1>${esc(it.title || '(untitled)')}</h1></div>
     <p class="meta">${badge(it.source || 'Sector')}

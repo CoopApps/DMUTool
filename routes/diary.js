@@ -55,7 +55,10 @@ router.get('/', async (req, res) => {
       if (/oral question/i.test(e.event_type || '') || /question time/i.test(e.title || '')) {
         const deadline = await sittingDaysBefore(new Date(e.date), 3);
         const wd = await workingDaysUntil(deadline);
-        oral = `<div class="oral">Submit by ${deadline.toISOString().slice(0,10)} (${wd} working days)</div>`;
+        const when = wd < 0 ? '<span class="wdr grey">deadline passed</span>'
+          : wd === 0 ? '<span class="wdr red">deadline today</span>'
+          : `${wd} working day${wd === 1 ? '' : 's'} left`;
+        oral = `<div class="oral">Submit by ${deadline.toISOString().slice(0,10)} — ${when}</div>`;
       }
       return `<div class="event ${matchClass}" onclick="this.classList.toggle('open')">
         <span class="ev-house">${esc(e.house || '')}</span>
