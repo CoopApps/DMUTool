@@ -219,6 +219,19 @@ body.dashmode .dash-kpis { margin: 0 2px 10px; }
   margin: 10px 0 2px; padding: 0 8px; position: sticky; top: 0; background: #fff; }
 .todo-grouphd .count { background: var(--dmu); color: #fff; border-radius: 10px; font-size: 11px; padding: 0 7px; }
 .aware-head { display: none; }
+/* Usage credits */
+.credit-figures { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.credit-figures .big { font-size: 28px; font-weight: 700; }
+.credit-figures .big.over, .credit-figures .over { color: #c0392b; }
+.credit-bar { height: 12px; background: #eef2f7; border-radius: 6px; overflow: hidden; }
+.credit-bar span { display: block; height: 100%; border-radius: 6px; }
+.credit-bar span.green { background: #2e9e5b; }
+.credit-bar span.amber { background: #e0a000; }
+.credit-bar span.red { background: #c0392b; }
+.small { font-size: 12px; }
+td.r, th.r { text-align: right; }
+.mini-bar { width: 120px; }
+.mini-bar span { display: inline-block; height: 9px; background: #4a78c0; border-radius: 4px; min-width: 2px; vertical-align: middle; }
 /* Events & invite lists */
 .plist-row { display: flex; align-items: center; gap: 14px; padding: 11px 12px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); }
 .plist-row:hover { background: #f3f6fb; }

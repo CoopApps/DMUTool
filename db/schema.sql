@@ -506,3 +506,24 @@ CREATE TABLE IF NOT EXISTS event_invitees (
   UNIQUE(event_id, contact_id)
 );
 CREATE INDEX IF NOT EXISTS idx_invitee_event ON event_invitees(event_id, status);
+
+-- ========================= AI usage credits =========================
+-- One row per Claude API call, so spend can be metered, attributed to a
+-- feature, and shown against a monthly budget. Token counts come straight
+-- from the API response; cost is an estimate from the per-model price table.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts            TEXT DEFAULT (datetime('now')),
+  feature       TEXT,                  -- draft | briefing | relevance | matcher | other
+  model         TEXT,
+  input_tokens  INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  cost_usd      REAL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_ts ON ai_usage(ts);
+
+-- Simple key/value app settings (monthly AI budget, etc).
+CREATE TABLE IF NOT EXISTS app_settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);

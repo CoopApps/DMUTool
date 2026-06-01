@@ -63,7 +63,7 @@ function buildPrompt(data) {
 async function generate() {
   if (!claude.isConfigured()) throw new Error('ANTHROPIC_API_KEY not set — briefing disabled.');
   const data = gather();
-  const text = await claude.callClaude({ user: buildPrompt(data), maxTokens: 1500 });
+  const text = await claude.callClaude({ user: buildPrompt(data), maxTokens: 1500, feature: 'briefing' });
   const counts = {
     parliamentary: data.parliamentary.length, inquiries: data.inquiries.length,
     consultations: data.consultations.length, thinktanks: data.thinktanks.length,
@@ -90,7 +90,7 @@ async function stateOfPlay() {
     `Inquiries closing: ${fmt(data.inquiries, (i) => `${i.inquiry_title} (${i.working_days_remaining ?? '?'}wd)`)}\n` +
     `Consultations closing: ${fmt(data.consultations, (c) => `${c.title} (${c.working_days_remaining ?? '?'}wd)`)}\n` +
     `Sector/think-tank: ${fmt(data.thinktanks, (t) => `${t.source_name}: ${t.title}`)}\n`;
-  const text = await claude.callClaude({ user, maxTokens: 350, model: claude.FAST_MODEL });
+  const text = await claude.callClaude({ user, maxTokens: 350, model: claude.FAST_MODEL, feature: 'briefing' });
   return { text: text.trim() };
 }
 

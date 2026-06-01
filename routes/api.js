@@ -334,6 +334,12 @@ router.post('/events/:id/template', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Usage credits: set monthly budget -------------------------------------
+router.post('/usage/budget', (req, res) => {
+  const n = require('../services/usage').setBudget(req.body.budget);
+  res.json({ ok: true, budget: n });
+});
+
 // ---- Admin: manual source run ----------------------------------------------
 const SOURCE_RUNNERS = {
   hansard: () => require('../services/hansard').run(),

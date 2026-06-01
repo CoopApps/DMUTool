@@ -89,7 +89,7 @@ async function draft({ item_id, item_type, output_type, mp_id }) {
     mpBlock +
     `\nDraft ${instruction} in DMU's institutional voice — professional, direct, evidence-grounded, not promotional.`;
 
-  const text = await callClaude({ user: content, maxTokens: 1000 });
+  const text = await callClaude({ user: content, maxTokens: 1000, feature: 'draft' });
   return { text, output_type, matched_academics: matches.academics.length, matched_courses: matches.courses.length };
 }
 

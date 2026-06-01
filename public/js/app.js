@@ -311,9 +311,16 @@
     if (el) { navigator.clipboard.writeText(el.textContent); flash('Invite copied'); }
   }
 
+  // ---- Usage credits -------------------------------------------------------
+  async function saveBudget(ev) { ev.preventDefault();
+    try { await postJSON('/api/usage/budget', formData(ev.target)); location.reload(); }
+    catch (e) { alert('Error: ' + e.message); }
+    return false;
+  }
+
   window.DMU = { openDraft, closeDraft, generateDraft, saveDraft, copyDraft, findExperts, saveSubmission,
     saveConsultation, logContact, addGroup, saveKeywords, deleteGroup, saveBody, saveContext,
     addContext, savePolicyUnit, clearPolicyUnit, reassess, toggleWatch, testEmail, stateOfPlay, runSource, quickExpert, followUpDone, weeklyBriefing, copyBriefing,
-    createEvent, searchMembersForEvent, addMemberToEvent, addEventContact, setInviteeStatus, removeInvitee, saveInviteTemplate, copyInvite,
+    createEvent, searchMembersForEvent, addMemberToEvent, addEventContact, setInviteeStatus, removeInvitee, saveInviteTemplate, copyInvite, saveBudget,
     saveDraftRow, draftStatus, copyDraftRow, deleteDraft, flag, matchVote };
 })();

@@ -280,7 +280,7 @@ async function semanticMatch(itemId, itemType) {
 
   let parsed = [];
   try {
-    const text = await callClaude({ system, user, maxTokens: 1000 });
+    const text = await callClaude({ system, user, maxTokens: 1000, feature: 'matcher' });
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
   } catch (e) {

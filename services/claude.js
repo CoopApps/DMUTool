@@ -22,16 +22,28 @@ function client() {
 }
 
 /**
- * Single-turn call. Returns the concatenated text content.
- * @param {{system?:string, user:string, maxTokens?:number, model?:string}} opts
+ * Single-turn call. Returns the concatenated text content. The `feature` label
+ * is recorded against usage metering so spend can be attributed (draft,
+ * briefing, relevance, matcher, …).
+ * @param {{system?:string, user:string, maxTokens?:number, model?:string, feature?:string}} opts
  */
-async function callClaude({ system, user, maxTokens = 1000, model = MODEL }) {
+async function callClaude({ system, user, maxTokens = 1000, model = MODEL, feature = 'other' }) {
   const resp = await client().messages.create({
     model,
     max_tokens: maxTokens,
     system,
     messages: [{ role: 'user', content: user }],
   });
+  // Best-effort usage metering — never let it break the call. Required lazily
+  // to avoid a circular dependency (usage → database, not the SDK).
+  try {
+    const u = resp.usage || {};
+    require('./usage').record({
+      feature, model,
+      input_tokens: u.input_tokens || 0,
+      output_tokens: u.output_tokens || 0,
+    });
+  } catch (_) { /* metering is non-critical */ }
   return resp.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
 }
 
