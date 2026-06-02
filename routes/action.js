@@ -28,6 +28,21 @@ function ragClass(wdr) {
   return 'green';
 }
 
+/** Short calendar date for a deadline, e.g. "19 Jun". Empty string if unparseable. */
+function shortDate(d) {
+  if (!d) return '';
+  const t = new Date(d);
+  if (isNaN(t)) return '';
+  return t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+}
+
+/** "14 working days · closes 19 Jun" (omits the date if we don't have one). */
+function deadlineLabel(wdr, deadline) {
+  const days = `${wdr} working day${wdr === 1 ? '' : 's'}`;
+  const when = shortDate(deadline);
+  return when ? `${days} · closes ${when}` : days;
+}
+
 router.get('/', async (req, res) => {
   ageNewFlags();
 
@@ -87,20 +102,20 @@ router.get('/', async (req, res) => {
   // 1) Closing deadlines within horizon — gated on overall DMU interest
   //    (institutional impact + sector/UA + expertise, weighed together).
   const inquiries = all(
-    `SELECT id, committee_name AS org, inquiry_title AS title, working_days_remaining AS wdr, url,
+    `SELECT id, committee_name AS org, inquiry_title AS title, working_days_remaining AS wdr, deadline, url,
             relevance_checked, relevance_level, 'committee_inquiry' AS kind
      FROM committee_inquiries WHERE evidence_status='AcceptingEvidence'
        AND working_days_remaining IS NOT NULL AND working_days_remaining BETWEEN 0 AND ${HORIZON}`
   ).filter(interestOk);
   const consultations = all(
-    `SELECT id, organisation AS org, title, working_days_remaining AS wdr, url,
+    `SELECT id, organisation AS org, title, working_days_remaining AS wdr, deadline, url,
             relevance_checked, relevance_level, 'consultation' AS kind
      FROM consultations WHERE working_days_remaining IS NOT NULL AND working_days_remaining BETWEEN 0 AND ${HORIZON}`
   ).filter(interestOk);
   const deadlines = [...inquiries, ...consultations].sort((a, b) => a.wdr - b.wdr);
 
   const deadlineRows = deadlines.map((d) => `<tr>
-    <td><span class="wdr ${ragClass(d.wdr)}">${d.wdr} wd</span></td>
+    <td><span class="wdr ${ragClass(d.wdr)}">${esc(deadlineLabel(d.wdr, d.deadline))}</span></td>
     <td>${esc(d.org || '')}</td>
     <td><a href="${esc(d.url || '#')}" target="_blank" rel="noopener">${esc(d.title)}</a></td>
     <td>${d.kind === 'committee_inquiry' ? 'Committee' : 'Consultation'}</td>
@@ -121,7 +136,7 @@ router.get('/', async (req, res) => {
     const wd = await workingDaysUntil(cutoff);
     if (wd < 0) continue; // cut-off passed
     oralRows.push(`<tr>
-      <td><span class="wdr ${ragClass(wd)}">${wd} wd</span></td>
+      <td><span class="wdr ${ragClass(wd)}">${wd} working day${wd === 1 ? '' : 's'}</span></td>
       <td>${esc(dept)}</td>
       <td>Session ${esc((o.date || '').slice(0,10))}</td>
       <td>Submit by ${esc(cutoff.toISOString().slice(0,10))} (12:30)</td>
@@ -169,7 +184,7 @@ router.get('/', async (req, res) => {
 
   const deadlineList = deadlines.length ? `<div class="plist">${deadlines.map((d) => `
     <a href="${esc(d.url || '#')}" target="_blank" rel="noopener">
-      <span class="wdr ${ragClass(d.wdr)}">${d.wdr}wd</span>
+      <span class="wdr ${ragClass(d.wdr)}">${esc(deadlineLabel(d.wdr, d.deadline))}</span>
       <span class="t">${esc(d.title)}<br><span class="muted">${esc(d.org || '')} · ${d.kind === 'committee_inquiry' ? 'Committee' : 'Consultation'}</span></span>
       <button onclick="event.preventDefault();DMU.openDraft(${d.id},'${d.kind}','committee_submission')">Draft</button>
     </a>`).join('')}</div>` : '<p class="empty">No relevant deadlines in the next 15 working days.</p>';
@@ -246,7 +261,7 @@ router.get('/', async (req, res) => {
       ${briefingBtn}</div>
     ${healthBar}
     <div class="dash-kpis">
-      ${kpi(deadlines.length, 'deadlines ≤15wd', '#', deadlines.some((d) => d.wdr < 7) ? 'warn' : '')}
+      ${kpi(deadlines.length, 'deadlines ≤15 working days', '#', deadlines.some((d) => d.wdr < 7) ? 'warn' : '')}
       ${kpi(newParl, 'new parliamentary', '/digest')}
       ${kpi(newInq, 'new inquiries', '/committees')}
       ${kpi(newCons, 'new consultations', '/consultations')}
